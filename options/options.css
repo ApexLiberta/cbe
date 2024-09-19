@@ -1,0 +1,208 @@
+@charset "utf-8";
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@namespace url(http://www.w3.org/1999/xhtml); /* set default namespace to HTML */
+
+*|*:root {
+	color-scheme: light dark;
+	direction: ltr;
+	-moz-control-character-visibility: visible;
+	height: 100%;
+}
+#viewsource {
+	font-family: -moz-fixed;
+	font-weight: normal;
+	white-space: pre;
+	counter-reset: line;
+	height: 100%;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 8px;
+}
+#viewsource.wrap {
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+pre {
+	font: inherit;
+	color: inherit;
+	white-space: inherit;
+	margin: 0 0 0 5ch;
+}
+pre[id]:before,
+span[id]:before {
+	content: counter(line) " ";
+	counter-increment: line;
+	user-select: none;
+	display: inline-block;
+	width: 5ch;
+	margin: 0 0 0 -5ch;
+	text-align: right;
+	color: #ccc;
+	font-weight: normal;
+	font-style: normal;
+}
+.highlight .start-tag,
+.highlight .end-tag {
+	color: purple;
+	font-weight: bold;
+}
+.highlight .comment {
+	color: green;
+	font-style: italic;
+}
+.highlight .cdata {
+	color: #cc0066;
+}
+.highlight .doctype,
+.highlight .markupdeclaration {
+	color: steelblue;
+	font-style: italic;
+}
+.highlight .pi {
+	color: orchid;
+	font-style: italic;
+}
+.highlight .entity {
+	color: #ff4500;
+	font-weight: normal;
+}
+.highlight .text {
+	font-weight: normal;
+}
+.highlight .attribute-name {
+	font-weight: bold;
+}
+.highlight .attribute-value {
+	color: blue;
+	font-weight: normal;
+}
+span:not(.error),
+a:not(.error) {
+	unicode-bidi: embed;
+}
+span[id] {
+	unicode-bidi: isolate;
+}
+.highlight .error {
+	color: revert;
+	font-weight: bold;
+	background-color: rgba(231, 116, 113, 0.3);
+	text-decoration: underline wavy red 0.5px;
+}
+@media (prefers-color-scheme: dark) {
+	.highlight .start-tag,
+	.highlight .end-tag {
+		color: #f55e5e;
+	}
+	.highlight .comment {
+		color: lightgreen;
+	}
+	.highlight .cdata {
+		color: #f068ac;
+	}
+	.highlight .doctype,
+	.highlight .markupdeclaration {
+		color: lightgray;
+	}
+	.highlight .entity {
+		color: #f18a65;
+	}
+	.highlight .attribute-value {
+		color: #97bbff;
+	}
+
+	body {
+		background: #23222b;
+		color: #fff;
+	}
+
+	p {
+		color: rgb(177, 177, 179);
+	}
+}
+
+body {
+	--grey10: #e7e7e7;
+
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+		Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+	background: #fff;
+	color: rgb(74, 74, 79);
+	font-size: 13px;
+	overflow: hidden;
+}
+
+input:where([type="checkbox"], [type="radio"]) {
+	height: 16px;
+	width: 16px;
+	padding: 0;
+	margin-block: var(--space-xxsmall);
+	margin-inline: 0 var(--checkbox-margin-inline);
+	flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+	html {
+		color-scheme: dark;
+	}
+	body {
+		background-color: #23222b;
+	}
+}
+
+.addon-detail-row {
+	display: flex !important;
+	justify-content: space-between;
+}
+.addon-detail-actions {
+	display: flex;
+	align-items: center;
+	vertical-align: middle;
+}
+.radio-container-with-text {
+	&:not(:last-child) {
+		margin-left: 12px;
+	}
+	display: flex;
+	align-items: center;
+}
+
+.source-item {
+	font-weight: bold;
+}
+
+xul|*.radio-check,
+xul|*.checkbox-check,
+html|input:where([type="checkbox"], [type="radio"]) {
+	height: 16px;
+	width: 16px;
+	padding: 0;
+	margin-block: var(--space-xxsmall);
+	margin-inline: 0 var(--checkbox-margin-inline);
+	flex-shrink: 0;
+}
+
+.flex-row {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+}
+.toggle-button {
+	appearance: none;
+	padding: 0;
+	margin: 0;
+	border: 1px solid light-dark(#8f8f9d , #bfbfc9);
+	height: 16px;
+	width: 32px;
+	border-radius: 999px;
+	background: color-mix(in srgb, currentC010r 7%, C) transparent;
+	box-sizing: border-box;
+	flex-shrink: 0;
+}
+.toggle-button[aria-pressed="true"] {
+	background: light-dark(#0060df , #00ddff);
+	border-color: transparent;
+}
