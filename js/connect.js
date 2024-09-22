@@ -6,8 +6,19 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 });
 
-console.log('scp')
+var url = window.location.href;
 
+const steamPattern =
+	/^(https?:\/\/)(www\.)?store\.steampowered\.com\/app\/\d+$/;
+const epicPattern = /^(https?:\/\/)(www\.)?epicgames\.com\/en-US\/p\/\w+$/;
+
+if (url.match(steamPattern)) {
+	console.log("steam");
+} else if (url.match(epicPattern)) {
+	console.log("epic");
+} else {
+	console.log("no");
+}
 
 function steam() {
 	console.log("steam Linked");
@@ -48,6 +59,8 @@ function steam() {
 			console.warn("Unexpected content type found in dev_row:", devRowType);
 		}
 	}
+
+	console.log(info);
 
 	return info;
 }
@@ -99,6 +112,7 @@ function epic() {
 			}
 		});
 	});
+	console.log(info);
 	return info;
 }
 
