@@ -1,33 +1,50 @@
 {
 	"manifest_version": 2,
 	"name": "Connect",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Add games from different platforms to your game library easily.",
 	"permissions": ["activeTab", "scripting", "storage", "declarativeNetRequest"],
-    "icons": {
-        "48": "/assets/icons/connect-48.png"
-    },
-    "background": {
-        "scripts": ["/js/background.js"],
-        "persistent": false,
-        "type": "module"
-    },
-    "page_action": {
-        "default_icon": {
-            "16": "/assets/icons/connect-16.png",
-            "32": "/assets/icons/connect-32.png"
-        },
-        "show_matches": ["*://*.steampowered.com/app/*", "*://*.epicgames.com/en-US/p/*"],
-        "default_title": "Connect"
-    },
+	"icons": {
+		"16": "/assets/icons/connect-16.png",
+		"32": "/assets/icons/connect-32.png",
+		"48": "/assets/icons/connect-48.png",
+		"128": "/assets/icons/connect-128.png"
+	},
+	"background": {
+		"scripts": ["/js/background.js"],
+		"persistent": false,
+		"type": "module"
+	},
+	"browser_action": {
+		"default_icon": {
+			"16": "/assets/icons/connect-16.png",
+			"32": "/assets/icons/connect-32.png"
+		},
+		"default_title": "Open Library"
+	},
+	"page_action": {
+		"default_icon": {
+			"16": "/assets/icons/connect-16.png",
+			"32": "/assets/icons/connect-32.png"
+		},
+		"show_matches": [
+			"*://*.steampowered.com/app/*",
+			"*://*.epicgames.com/en-US/p/*"
+		],
+		"default_title": "Connect"
+	},
 
 	"content_scripts": [
 		{
-			"matches": ["*://*.steampowered.com/app/*", "*://*.epicgames.com/en-US/p/*"],
-			"js": ["/js/connect.js"]
+			"matches": [
+				"*://*.steampowered.com/app/*",
+				"*://*.epicgames.com/en-US/p/*"
+			],
+			"js": ["/js/connect.js"],
+			"run_at": "document_idle"
 		}
 	],
-    "options_ui": {
-        "page": "/options/options.html"
-    }
+	"options_ui": {
+		"page": "/pages/options.html"
+	}
 }

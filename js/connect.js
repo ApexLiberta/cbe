@@ -1,27 +1,55 @@
+//"128": "/assets/icons/connect-128.png"
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	if (request.action === "openNewTab") {
-		const anchor = document.createElement("a");
-		anchor.href = request.url;
-		anchor.click();
+	if (request.action === "click") {
+		var url = window.location.href;
+		let gameInfo;
+
+		if (url.includes("steampowered.com")) {
+			gameInfo = steam();
+		} else if (url.includes("epicgames.com")) {
+			gameInfo = epic();
+		}
+
+		// Ensure gameInfo is valid before sending a message
+		if (gameInfo) {
+			browser.runtime.sendMessage({ action: "addGame", gameInfo });
+		} else {
+			console.warn("Failed to retrieve game information.");
+		}
 	}
 });
 
-var url = window.location.href;
 
-const steamPattern =
-	/^(https?:\/\/)(www\.)?store\.steampowered\.com\/app\/\d+$/;
-const epicPattern = /^(https?:\/\/)(www\.)?epicgames\.com\/en-US\/p\/\w+$/;
+async function getDataFromTab() {
+	try {
+		const steam = {
+			name: await getElement("#appHubAppName"),
+			description: await getElement(".glance_ctn .game_description_snippet"),
+			releaseDate: await getElement(".glance_ctn .release_date .date"),
+		};
 
-if (url.match(steamPattern)) {
-	console.log("steam");
-} else if (url.match(epicPattern)) {
-	console.log("epic");
-} else {
-	console.log("no");
+		for (const key in steam) {
+			console.log(key, steam[key]);
+		}
+	} catch (error) {
+		console.error("Error:", error);
+	}
 }
 
+function getElement(selector) {
+	return new Promise((resolve, reject) => {
+		const element = document.querySelector(selector);
+		if (element) {
+			resolve(element.textContent);
+		} else {
+			reject(`Element with selector "${selector}" not found`);
+		}
+	});
+}
+
+getDataFromTab();
+
 function steam() {
-	console.log("steam Linked");
 	const titleElement = document.querySelector("#appHubAppName");
 	const descriptionElement = document.querySelector(
 		".glance_ctn .game_description_snippet"
@@ -36,12 +64,15 @@ function steam() {
 	).map((tag) => tag.innerText.trim());
 
 	const info = {
-		title: titleElement?.textContent || "Title not found",
+		name: titleElement?.textContent || "Title not found",
 		description: descriptionElement?.innerText || "Description not found",
-		"release date": releaseDateElement?.textContent || "Release Date not found",
+		releaseDate:
+			parseDate(releaseDateElement?.textContent) || "Release Date not found",
 		developers: [],
 		publishers: [],
 		tags: tagsArray,
+		links: [window.location.href],
+		source: "steam",
 	};
 
 	for (const devRow of devRowElements) {
@@ -52,67 +83,112 @@ function steam() {
 		const content = Array.from(contentElements).map((el) => el.textContent);
 
 		if (devRowType === "Developer:") {
-			info.developers.push(content);
+			info.developers = content; // No nested arrays
 		} else if (devRowType === "Publisher:") {
-			info.publishers.push(content);
+			info.publishers = content; // No nested arrays
 		} else {
 			console.warn("Unexpected content type found in dev_row:", devRowType);
 		}
 	}
-
-	console.log(info);
-
 	return info;
 }
 
 function epic() {
-	console.log("Epic Linked", details);
 	const titleElement = document.querySelector("h1");
 	const ele = document.querySelectorAll(".css-8f0505");
+	const descriptionElement = document.querySelector(".css-1myreog");
+
 	const info = {
-		title: titleElement?.textContent || "Title not found",
+		name: titleElement?.textContent || "Title not found",
+		description: descriptionElement?.innerText || "Description not found",
 		genres: [],
 		features: [],
-		developer: "",
-		publisher: "",
+		developers: [],
+		publishers: [],
 		releaseDate: "",
+		links: [window.location.href],
+		source: "epic",
 	};
+
 	for (const sec of ele) {
 		const contentElements = sec.querySelectorAll("a");
 		const content = Array.from(contentElements).map((el) => el.textContent);
+
 		if (sec.querySelector("p").innerText == "Genres") {
-			info.genres.push(content);
+			info.genres = content; // Assign genres
 		} else {
-			info.features.push(content);
+			info.features = content; // Assign features
 		}
 	}
+
 	const dataArray = Array.from(
 		document.querySelectorAll(".css-1ofqig9 .css-s97i32")
 	);
 	const categories = ["Developer", "Publisher", "Release Date"];
 
-	categories.forEach((category) => {
-		const hasSpan = dataArray.some((element) => {
-			const span = element.querySelector(
-				".eds_1ypbntd0.eds_1ypbntdc.eds_1ypbntdk.css-1247nep"
-			);
-			if (span.textContent.trim() === category) {
-				const value = element.querySelector(".css-btns76").textContent.trim();
+	dataArray.forEach((element) => {
+		const span = element.querySelector(
+			".eds_1ypbntd0.eds_1ypbntdc.eds_1ypbntdk.css-1247nep"
+		);
+		if (span) {
+			const category = span.textContent.trim();
+			const value = element.querySelector(".css-btns76")?.textContent.trim();
+
+			if (value) {
 				switch (category) {
 					case "Developer":
-						info.developer = value;
+						info.developers.push(value); // Collect developers
 						break;
 					case "Publisher":
-						info.publisher = value;
+						info.publishers.push(value); // Collect publishers
 						break;
 					case "Release Date":
-						info.releaseDate = value;
+						info.releaseDate = parseDate(value); // Collect release date
 						break;
 				}
 			}
-		});
+		}
 	});
-	console.log(info);
+
 	return info;
 }
 
+function parseDate(dateString) {
+	// Handle different date formats
+	let parsedDate;
+
+	if (dateString.match(/\d{2}\/\d{2}\/\d{2}/)) {
+		// Format: MM/DD/YY
+		parsedDate = new Date(dateString.replace(/\//g, "-"));
+	} else if (dateString.match(/\d{1,2} \w+, \d{4}/)) {
+		// Format: D MMM, YYYY
+		const [day, month, year] = dateString.split(" ");
+		const monthIndex = [
+			"Jan",
+			"Feb",
+			"Mar",
+			"Apr",
+			"May",
+			"Jun",
+			"Jul",
+			"Aug",
+			"Sep",
+			"Oct",
+			"Nov",
+			"Dec",
+		].indexOf(month);
+		parsedDate = new Date(year, monthIndex, day);
+	} else {
+		// Handle other formats or throw an error
+		throw new Error("Invalid date format");
+	}
+
+	// Convert to C# format
+	const csharpFormat = parsedDate.toISOString().slice(0, 10); // YYYY-MM-DD
+
+	return csharpFormat;
+}
+
+function gameData() {
+	return {};
+}
