@@ -122,4 +122,27 @@ function mergeUniqueValues(obj1, obj2) {
 const mergedObject = mergeUniqueValues(obj1, obj2);
 //console.log(mergedObject);
 
-export { sortObjectKeys, findDifferences, mergeUniqueValues };
+
+
+function wildcardToRegExp(wildcard) {
+	// Escape special regex characters and replace wildcards with regex equivalents
+	return new RegExp(
+		"^" +
+			wildcard
+				.replace(/\./g, "\\.") // Escape '.' to match it literally
+				.replace(/\*/g, ".*") + // Replace '*' with '.*' to match any sequence of characters
+			"$"
+	); // Ensure the whole string is matched
+}
+
+function doesUrlMatchPattern(url, pattern) {
+	return wildcardToRegExp(pattern).test(url);
+}
+
+
+export {
+	sortObjectKeys,
+	findDifferences,
+	mergeUniqueValues,
+	doesUrlMatchPattern,
+};

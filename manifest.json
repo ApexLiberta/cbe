@@ -3,7 +3,18 @@
 	"name": "Connect",
 	"version": "0.1.1",
 	"description": "Add games from different platforms to your game library easily.",
-	"permissions": ["activeTab", "scripting", "storage", "declarativeNetRequest"],
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "liberta.dragnald@gmail.com"
+		}
+	},
+	"permissions": [
+		"tabs",
+		"activeTab",
+		"scripting",
+		"storage",
+		"declarativeNetRequest"
+	],
 	"icons": {
 		"16": "/assets/icons/connect-16.png",
 		"32": "/assets/icons/connect-32.png",
@@ -27,24 +38,18 @@
 			"16": "/assets/icons/connect-16.png",
 			"32": "/assets/icons/connect-32.png"
 		},
-		"show_matches": [
-			"*://*.steampowered.com/app/*",
-			"*://*.epicgames.com/en-US/p/*"
-		],
-		"default_title": "Connect"
+		"show_matches": ["<all_urls>"],
+		"default_title": "Add game to Connect"
 	},
 
 	"content_scripts": [
 		{
-			"matches": [
-				"*://*.steampowered.com/app/*",
-				"*://*.epicgames.com/en-US/p/*"
-			],
+			"matches": ["<all_urls>"],
 			"js": ["/js/connect.js"],
 			"run_at": "document_idle"
 		}
 	],
 	"options_ui": {
-		"page": "/pages/options.html"
+		"page": "/options.html"
 	}
 }

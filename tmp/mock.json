@@ -1,32 +1,55 @@
-{
-	"name": "Atlas Fallen: Reign Of Sand",
-	"description": "In solo or co-op, experience Reign of Sand, the ultimate version of Atlas Fallen. Ride the sands of a timeless land and defeat legendary monsters in spectacular Action-RPG combat using devastating powers.",
-	"releaseDate": "9 Aug, 2023",
-	"developers": ["Deck13"],
-	"publishers": ["Focus Entertainment"],
-	"tags": [
-		"Action",
-		"Adventure",
-		"Action RPG",
-		"Action-Adventure",
-		"Exploration",
-		"3D",
-		"Online Co-Op",
-		"Fantasy",
-		"Cinematic",
-		"Demons",
-		"Loot",
-		"Magic",
-		"Mystery",
-		"Supernatural",
-		"Singleplayer",
-		"Combat",
-		"Female Protagonist",
-		"Narration",
-		"RPG",
-		"Story Rich"
-	],
-	"links": [
-		"https://store.steampowered.com/app/1230530/Atlas_Fallen_Reign_Of_Sand/"
-	]
-}
+[
+	{
+		"name": "steam",
+		"matches": "*://*.steampowered.com/app/*",
+		"selectors": {
+			"name": {
+				"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.page_title_area.game_title_area.page_content div.apphub_HomeHeaderContent div.apphub_HeaderStandardTop div#appHubAppName.apphub_AppName",
+				"type": "text"
+			},
+			"description": {
+				"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.game_description_snippet",
+				"type": "text"
+			},
+			"releaseDate": {
+				"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.glance_ctn_responsive_left div.release_date div.date",
+				"type": "text"
+			},
+			"developers": {
+				"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.glance_ctn_responsive_left div.dev_row div#developers_list.summary.column",
+				"type": "link"
+			},
+			"publishers": {
+				"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.glance_ctn_responsive_left div.dev_row div.summary.column",
+				"type": "link"
+			},
+			"tags": {
+				"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div#glanceCtnResponsiveRight.glance_ctn_responsive_right div.glance_tags_ctn.popular_tags_ctn div.glance_tags.popular_tags",
+				"type": "link"
+			}
+		}
+	},
+	{
+		"name": "games",
+		"indexes": [
+			{ "name": "name", "unique": true },
+			{ "name": "description", "unique": false },
+			{ "name": "platform", "unique": false },
+			{ "name": "developers", "unique": false },
+			{ "name": "publishers", "unique": false },
+			{ "name": "categories", "unique": false },
+			{ "name": "genres", "unique": false },
+			{ "name": "features", "unique": false },
+			{ "name": "tags", "unique": false },
+			{ "name": "releaseDate", "unique": false },
+			{ "name": "series", "unique": false },
+			{ "name": "ageRating", "unique": false },
+			{ "name": "region", "unique": false },
+			{ "name": "source", "unique": false },
+			{ "name": "completionStatus", "unique": false },
+			{ "name": "userScore", "unique": false },
+			{ "name": "criticScore", "unique": false },
+			{ "name": "communityScore", "unique": false }
+		]
+	}
+]

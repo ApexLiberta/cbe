@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options</title>
+    <!--
+        <link rel="stylesheet" href="/css/options.css">
+    -->
+
+    <style>
+        *|*:root {
+            color-scheme: light dark;
+            direction: ltr;
+            -moz-control-character-visibility: visible;
+            height: 100%;
+            font-family: -moz-fixed;
+            font-weight: normal;
+            counter-reset: line;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        header{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        main{
+            margin: 12px 0;
+        }
+        h1, h2, h3, h4, h5, h6{
+            margin: 0px;
+        }
+        h2{
+            text-transform: capitalize;
+        }
+        button, input{
+            padding: 6px;
+        }
+        ul{
+            list-style: none;
+            margin: 0px;
+            padding: 0px;
+        }
+        .container_header{
+            display: flex;
+            justify-content: space-between;
+        }
+        #sourceList{
+            font-size: 18px;
+        }
+        #addSource, #cancelSource{
+            text-transform: capitalize;
+            font-weight: bold;
+        }
+        .addSourceLi{
+            display: flex;
+            justify-content: space-between;
+        }
+        #inputFd{
+            margin: 12px 0;
+        }
+        #sourceName{
+            margin: 0px 8px;
+            width: 250px;
+        }
+        @media (prefers-color-scheme: dark) {
+            html {
+                color-scheme: dark;
+            }
+            body {
+                background-color: #23222b;
+            }
+        }
+        .btn{
+            cursor: pointer;
+        }
+        .ghost{
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header class="ghost">
+        <h1>Connect</h1>
+        <button id="add-lib" class="btn">add library</button>
+    </header>
+    <main>
+        <div class="sources_container">
+            <div class="container_header">
+                <h2></h2>
+                <button id="addSource" class="btn">add source</button>
+            </div>
+            <ul id="sourceList"></ul>
+        </div>
+        <!--
+            <input type="number" name="Gist Id" id="gist-id">
+        -->
+    </main>
+    <footer></footer>
+    <script src="/js/options.js"></script>
+</body>
+</html>

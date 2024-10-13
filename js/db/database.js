@@ -114,8 +114,7 @@ const addGame = async (game) => {
 
 		return tx.complete;
 	} catch (error) {
-		console.error("Error adding game:", error);
-		// Handle overall error (e.g., reject a promise)
+		console.error("Error adding game:", error); // Handle overall error (e.g., reject a promise)
 	}
 };
 
@@ -229,38 +228,8 @@ function exportIndexedDB() {
 
 
 
-async function fetchGistCode(gistId) {
-	const gistUrl = `https://api.github.com/gists/${gistId}`;
-	try {
-		const response = await fetch(gistUrl);
-		if (!response.ok) {
-			throw new Error(`Error fetching Gist: ${response.status}`);
-		}
-		const gist = await response.json();
-		const fileName = Object.keys(gist.files)[0];
-		return {
-			fileName,
-			code: gist.files[fileName].content,
-		};
-	} catch (error) {
-		console.error("Error fetching Gist:", error);
-		return null;
-	}
-}
-
-const gistId = "3f3438a27214aedcd73608820174472a";
-/*
-fetchGistCode(gistId).then((result) => {
-	if (result) {
-		const { fileName, code } = result;
-		console.log("File Name:", fileName);
-		console.log("Code:", code);
-		// Add the code to your extension using appropriate methods
-	}
-});
-*/
 
 
 
 
-export { openDB, addGame, getAllGames, getGame, exportIndexedDB, fetchGistCode };
+export { openDB, addGame, getAllGames, getGame, exportIndexedDB };
