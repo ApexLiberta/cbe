@@ -1,6 +1,9 @@
 import { addGame, getGame, getAllGames } from "./db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./helpers.js";
 
+
+console.log(browser.extension);
+
 browser.browserAction.onClicked.addListener((tab) => {
 	browser.tabs.create({ url: "/library.html" });
 });
@@ -92,17 +95,21 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 							(source) => JSON.stringify(source) === JSON.stringify(parsedCode)
 						);
 						if (!existingCode) {
-							// Code doesn't exist, append it to sources
 							sources.push(parsedCode);
-							browser.storage.local
-								.set({ sources })
-								.then(() => console.log("Code appended to sources array.", sendResponse(true)))
-								.catch((error) =>
+							browser.storage.local.set({ sources })
+								.then(() => {
+									console.log("Code appended to sources array.");
+									sendResponse({
+										length: sources.length,
+										code: parsedCode,
+									});
+								})
+								.catch((error) => {
 									console.error(
 										"Error storing code in extension storage:",
 										error
-									)
-								);
+									);
+								});
 						} else {
 							console.log("Code already exists in sources.");
 						}
@@ -115,6 +122,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 					);
 			}
 		});
+	}
+
+	if (request.action === "print") {
+		console.log(request.dataObj);
+		return
 	}
 
 	return true;

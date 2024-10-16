@@ -139,10 +139,46 @@ function doesUrlMatchPattern(url, pattern) {
 	return wildcardToRegExp(pattern).test(url);
 }
 
+function parseDate(dateString) {
+	// Handle different date formats
+	let parsedDate;
+
+	if (dateString.match(/\d{2}\/\d{2}\/\d{2}/)) {
+		// Format: MM/DD/YY
+		parsedDate = new Date(dateString.replace(/\//g, "-"));
+	} else if (dateString.match(/\d{1,2} \w+, \d{4}/)) {
+		// Format: D MMM, YYYY
+		const [day, month, year] = dateString.split(" ");
+		const monthIndex = [
+			"Jan",
+			"Feb",
+			"Mar",
+			"Apr",
+			"May",
+			"Jun",
+			"Jul",
+			"Aug",
+			"Sep",
+			"Oct",
+			"Nov",
+			"Dec",
+		].indexOf(month);
+		parsedDate = new Date(year, monthIndex, day);
+	} else {
+		// Handle other formats or throw an error
+		throw new Error("Invalid date format");
+	}
+
+	// Convert to C# format
+	const csharpFormat = parsedDate.toISOString().slice(0, 10); // YYYY-MM-DD
+
+	return csharpFormat;
+}
 
 export {
 	sortObjectKeys,
 	findDifferences,
 	mergeUniqueValues,
 	doesUrlMatchPattern,
+	parseDate,
 };

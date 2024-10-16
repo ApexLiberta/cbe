@@ -20,11 +20,11 @@
             "selector": "html body div#dieselReactWrapper.en-US-locale div.eds_xd1k8g0 div.isBrowser.css-2nhytu div.css-1vplx76 main.css-1pmr3eb div.css-1dnikhe div.css-1dacand div.css-s45c7f div.css-r2r3m1 div.css-j7qwjs div.css-2tyhrd div.css-1nqq6xy div.css-qemfat div.css-usl2mg div.css-3r3brs div.css-j7qwjs div.css-16l4hro div.css-1wrgvz3 div.css-8f0505 div.css-j7qwjs div.css-11w1nwr div.eds_1cgaabk0.eds_1cgaabk2.eds_1cgaabka.eds_1cgaabkb.eds_1cgaabk5.eds_1tt68zf0.eds_1tt68zf7",
             "type": "link"
         },
-		"developer": {
+		"developers": {
             "selector":  "html body div#dieselReactWrapper.en-US-locale div.eds_xd1k8g0 div.isBrowser.css-2nhytu div.css-1vplx76 main.css-1pmr3eb div.css-1dnikhe div.css-1dacand div.css-s45c7f div.css-r2r3m1 div.css-j7qwjs div.css-2tyhrd div.css-1nqq6xy aside.css-566nsd div.css-1gmuxco div.css-1q94rgb div.css-1ofqig9 div.css-s97i32 div.css-1o0y1dn div.css-btns76 span.eds_1ypbntd0.eds_1ypbntdc.eds_1ypbntdk.css-12s1vua",
             "type": "0 string split comma space"
         },
-		"publisher": {
+		"publishers": {
             "selector": "html body div#dieselReactWrapper.en-US-locale div.eds_xd1k8g0 div.isBrowser.css-2nhytu div.css-1vplx76 main.css-1pmr3eb div.css-1dnikhe div.css-1dacand div.css-s45c7f div.css-r2r3m1 div.css-j7qwjs div.css-2tyhrd div.css-1nqq6xy aside.css-566nsd div.css-1gmuxco div.css-1q94rgb div.css-1ofqig9 div.css-s97i32 div.css-1o0y1dn div.css-btns76 span.eds_1ypbntd0.eds_1ypbntdc.eds_1ypbntdk.css-12s1vua",
             "type":"1 string split comma space"
         },

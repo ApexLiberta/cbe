@@ -4,7 +4,7 @@
 			const ul_et = document.querySelector("#sourceList");
 			if (sources.length > 0) {
 				document.querySelector("h2").textContent = (`sources (${sources.length})`);
-				sources.forEach(src => {
+				sources.reverse().forEach(src => {
 					const et = document.createElement('li')
 					et.textContent = src.name;
 					ul_et.appendChild(et)
@@ -41,12 +41,6 @@ const sourceUrlInput = document.querySelector("#sourceUrl");
 const addSourceBtn = document.querySelector("#addSource");
 
 const sourceListElement = document.querySelector("#sourceList");
-
-const addFeildsObj = {
-	name: "",
-	name: "",
-	name: "",
-};
 
 addSourceBtn.addEventListener("click", addSrcBtnHtml);
 
@@ -88,7 +82,13 @@ function addSrcBtnHtml() {
 				{ action: "addStore", gistId: element.value },
 				(response) => {
 					if(response){
-						console.log("add li")
+						document.querySelector(
+							"h2"
+						).textContent = `sources (${response.length})`;
+						const litag = document.createElement("li")
+						litag.textContent = response.code["name"]
+						document.querySelector("#sourceList").prepend(litag)
+						document.querySelector("#addSource").classList.remove("ghost");
 					}
 				}
 			);
