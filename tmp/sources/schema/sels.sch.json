@@ -1,0 +1,93 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Selectors Schema",
+	"type": "object",
+	"description": "Selectors for extracting game data",
+	"properties": {
+		"name": {
+			"type": "object",
+			"properties": {
+				"selector": {
+					"type": "string",
+					"description": "CSS selector for the game name"
+				},
+				"type": {
+					"type": "string",
+					"enum": ["extTxt"]
+				}
+			},
+			"required": ["selector", "type"]
+		},
+		"description": {
+			"type": "object",
+			"properties": {
+				"selector": {
+					"type": "string",
+					"description": "CSS selector for the game description"
+				},
+				"type": {
+					"type": "string",
+					"enum": ["extTxt"]
+				}
+			},
+			"required": ["selector", "type"]
+		},
+		"releaseDate": {
+			"type": "object",
+			"properties": {
+				"selector": {
+					"type": "string",
+					"description": "CSS selector for the game release date"
+				},
+				"type": {
+					"type": "string",
+					"enum": ["extTxt"]
+				}
+			},
+			"required": ["selector", "type"]
+		},
+		"developers": {
+			"type": "object",
+			"properties": {
+				"selector": {
+					"type": "string",
+					"description": "CSS selector for the developer(s)"
+				},
+				"type": {
+					"type": "string",
+					"enum": ["extLnksTxt"]
+				}
+			},
+			"required": ["selector", "type"]
+		},
+		"publishers": {
+			"type": "object",
+			"properties": {
+				"selector": {
+					"type": "string",
+					"description": "CSS selector for the publisher(s)"
+				},
+				"type": {
+					"type": "string",
+					"enum": ["extTxtArrBySiblMch"]
+				}
+			},
+			"required": ["selector", "type"]
+		},
+		"tags": {
+			"type": "object",
+			"properties": {
+				"selector": {
+					"type": "string",
+					"description": "CSS selector for the game tags"
+				},
+				"type": {
+					"type": "string",
+					"enum": ["extLnksTxt"]
+				}
+			},
+			"required": ["selector", "type"]
+		}
+	},
+	"required": ["name"]
+}

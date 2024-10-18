@@ -1,29 +1,47 @@
 import { addGame, getGame, getAllGames } from "./db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./helpers.js";
 
-
-console.log(browser.extension);
-
 browser.browserAction.onClicked.addListener((tab) => {
 	browser.tabs.create({ url: "/library.html" });
 });
 browser.pageAction.onClicked.addListener((tab) => {
-	console.log(tab);
-	browser.tabs.sendMessage(tab.id, { action: "click" });
-	/*
-	// Get the current URL and perform your desired action (optional)
-	browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-		const url = tabs[0].url;
-		console.log("Clicked on page action for URL:", url);
-		// Perform actions based on the URL (e.g., open a new tab, send a message to content script)
-	});
-	*/
+	browser.tabs.sendMessage(tab.id, { action: "pageActionClick", tab });
 });
+/*
+browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+	const url = tabs[0].url;
+});
+*/
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+	if (changeInfo.url) {
+		// The tab's URL has changed
+		console.log("Tab with ID", tabId, "has reloaded");
+		// Trigger your background script here
+	}
+	browser.pageAction.hide(tabId);
+});
+function hidePageAction(){
+	const getSrcs = browser.storage.local.get("sources");
+	getSrcs.then((sources) => {
+		const sourcesVar = sources["sources"];
+		if (sourcesVar) {
+			sourcesVar.forEach((source) => {
+				browser.tabs.query({}).then((tabs) => {
+					tabs.forEach((tab) => {
+						if (!doesUrlMatchPattern(tab.url, source["matches"])){
+							browser.pageAction.hide(tab.id);
 
+						}
+					});
+				});
+			});
+		}
+	})
+}
+hidePageAction()
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.action === "checkUrl") {
 		const result = doesUrlMatchPattern(request.url, request.pattern);
-		console.log(result, request.url)
 		sendResponse(result);
 	}
 	if (request.action === "pageAction") {
@@ -39,7 +57,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 
 	if (request.action === "addGame") {
-		const gameInfo = request.gameInfo;
+		const gameInfo = request.data;
 
 		// Assuming addGame is asynchronous (e.g., a promise), we should return true to keep the message channel open.
 		addGame(sortObjectKeys(gameInfo))
@@ -125,7 +143,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 
 	if (request.action === "print") {
-		console.log(request.dataObj);
+		console.log(request.data);
 		return
 	}
 

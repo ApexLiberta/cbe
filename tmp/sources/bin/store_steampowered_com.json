@@ -6,27 +6,27 @@
 	"selectors": {
 		"name": {
 			"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.page_title_area.game_title_area.page_content div.apphub_HomeHeaderContent div.apphub_HeaderStandardTop div#appHubAppName.apphub_AppName",
-			"type": "text"
+			"type": "extTxt"
 		},
 		"description": {
 			"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.game_description_snippet",
-			"type": "text"
+			"type": "extTxt"
 		},
 		"releaseDate": {
 			"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.glance_ctn_responsive_left div.release_date div.date",
-			"type": "text"
+			"type":"extTxt"
 		},
 		"developers": {
 			"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.glance_ctn_responsive_left div.dev_row div#developers_list.summary.column",
-			"type": "link"
+			"type": "extLnksTxt"
 		},
 		"publishers": {
 			"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div.glance_ctn_responsive_left div.dev_row div.summary.column",
-			"type": "link"
+			"type": "extTxtArrBySiblMch"
 		},
 		"tags": {
 			"selector": "html.responsive body.v6.app.game_bg.application.responsive_page div.responsive_page_frame.with_header div.responsive_page_content div#responsive_page_template_content.responsive_page_template_content div.game_page_background.game div#tabletGrid.tablet_grid div.page_content_ctn div.block.game_media_and_summary_ctn div.game_background_glow div#game_highlights.block_content.page_content div.rightcol div.glance_ctn div#glanceCtnResponsiveRight.glance_ctn_responsive_right div.glance_tags_ctn.popular_tags_ctn div.glance_tags.popular_tags",
-			"type": "link"
+			"type": "extLnksTxt"
 		}
 	}
 }

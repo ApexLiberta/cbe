@@ -1,76 +1,3 @@
-const tabUrl = window.location.href;
-
-if(tabUrl){
-	const getSrcs = browser.storage.local.get("sources")
-	getSrcs.then((sources) => {
-		const sourcesVar = sources["sources"]
-		if(sourcesVar){
-			sourcesVar.forEach((source) => {
-				browser.runtime.sendMessage(
-					{ action: "checkUrl", url: tabUrl, pattern: source["matches"] },
-					(response) => {
-						if (response) {
-							let data = {};
-							for (const [key, value] of Object.entries(source["selectors"])) {
-								//extractData(key, value["selector"], value["type"])
-								const selector = value["selector"];
-								const type = value["type"];
-								data[key] = processElements(key, selector, type);
-							}
-							//console.log(data);
-						} else {
-							console.log(
-								"The current URL does not match any of the provided URLs."
-							);
-						}
-					}
-				);
-			});
-		}
-	})
-}
-
-function processElements(key, selector, selectorType) {
-	const elements = document.querySelectorAll(selector);
-
-	if (elements.length === 0) {
-		console.error(`No elements found for selector: ${selector}`);
-		return null;
-	}
-
-	let data = [];
-	console.log(elements.length, elements)
-	for (const element of elements) {
-		switch (selectorType) {
-			case "text":
-				//console.log(selectorType, key , element)
-				data.push(element.textContent.replace("™", "").trim());
-				break;
-				case "link":
-				//console.log(selectorType, key , element)
-				const links = element.querySelectorAll("a");
-				links.forEach((link) => data.push(link.textContent.trim()));
-				break;
-			case "innerTextSplit":
-				console.log("inner");
-				data.push(element.innerText.split(", "));
-				break;
-			case "siblingMatch":
-				const sibling = element.nextElementSibling;
-				if (sibling && sibling.textContent === key) {
-					data.push(element.textContent);
-				}
-				break;
-			case "arrayKeyMatch":
-				// Implement your array key matching logic here
-				break;
-			// Add more cases for other selector types as needed
-		}
-	}
-
-	return data;
-}
-
 
 /*
 const steam = {
@@ -110,116 +37,120 @@ for (const [key, value] of Object.entries(steam)) {
 	extractData(key, value["selector"], value["type"]);
 }
 */
-function extractData(key, selector, selectorType) {
-	const elmts = document.querySelectorAll(selector);
-	let data;
-	if (!elmts) {
-		console.error(`Element not found for selector: ${selector}`);
-		return null;
-	} else if (elmts.length === 1) {
-		const elmt = elmts[0];
-		console.log(
-			elmt.textContent
-				.trim()
-				.toLowerCase()
-				.replace(/^\W+|\W+$/g, "")
-		);
-		//console.log(key, "elmt", true);
-	} else {
-		//console.log(key, "elmts", false);
-		for (const elmt of elmts) {
-			const siblings = Array.from(elmt.parentNode.childNodes).filter(
-				(node) => node.nodeType === Node.ELEMENT_NODE && node !== elmt
-			);
-			siblings.forEach((cld) => {
-				const textContent = cld.textContent
-					.trim()
-					.toLowerCase()
-					.replace(/^\W+|\W+$/g, "");
-				if (textContent && textContent !== "") {
-					if (key.includes(textContent)) {
-						console.log(
-							textContent,
-							key,
-							"The words are equal (case-insensitive)."
-						);
-					} else {
-						console.log(
-							textContent,
-							key,
-							"The words are not equal (case-insensitive)."
-						);
-					}
-					console.log(siblings, elmt, elmt.textContent.trim());
-				}
-			});
-		}
-	}
-
-
-
-
-	const element = document.querySelector(selector);
-	if (!element) {
-		console.error(`Element not found for selector: ${selector}`);
-		return null;
-	}
-	let dataObj = null
-	switch (selectorType) {
-		case "text":
-			dataObj = element.textContent.replace("™", "").trim();;
-			break;
-		case "link":
-			// Extract text from all links within the element
-			dataObj = []
-			allLinks = element.querySelectorAll("a")
-			allLinks.forEach((link) => {
-				dataObj.push(link.textContent.trim());
-			});
-			break;
-		case "innerTextSplit":
-			// Extract inner text and split it by ", "
-			dataObj = element.innerText.split(", ");
-			break;
-		case "siblingMatch":
-			// Check if sibling text content matches the key
-			const sibling = element.nextElementSibling;
-			if (sibling && sibling.textContent === key) {
-				dataObj = element.textContent;
-			}
-			break;
-		case "arrayKeyMatch":
-			const allElmts = document.querySelectorAll(selector)
-			console.log(allElmts)
-		// Add more cases for other selector types as needed
-	}
-	browser.runtime.sendMessage({ action: "print", dataObj });
-	//return extractedData;
-}
-
 
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	if (request.action === "click") {
-		var url = window.location.href;
-		let gameInfo;
+	if (request.action === "pageActionClick") {
+		const getSrcs = browser.storage.local.get("sources");
+		getSrcs.then((sources) => {
+			const sourcesVar = sources["sources"];
+			if (sourcesVar) {
+				sourcesVar.forEach((source) => {
+					browser.runtime.sendMessage(
+						{ action: "checkUrl", url: request.tab.url, pattern: source["matches"] },
+						(response) => {
+							if (response) {
+								let data = {};
+								for (const [key, value] of Object.entries(
+									source["selectors"]
+								)) {
+									//extractData(key, value["selector"], value["type"])
+									const selector = value["selector"];
+									const type = value["type"];
+									data[key] = processElements(key, selector, type);
+								}
+								browser.runtime.sendMessage({
+									action: "print",
+									data,
+								});
+								// Ensure gameInfo is valid before sending a message
+								if (data) {
+									browser.runtime.sendMessage({ action: "addGame", data });
+								} else {
+									console.warn("Failed to retrieve game information.");
+								}
+							} else {
+								console.log(
+									"The current URL does not match any of the provided URLs."
+								);
+							}
+						}
+					);
+				});
+			}
+		});
 
-		if (url.includes("steampowered.com")) {
-			gameInfo = steam();
-		} else if (url.includes("epicgames.com")) {
-			gameInfo = epic();
-		}
-
-		// Ensure gameInfo is valid before sending a message
-		if (gameInfo) {
-			browser.runtime.sendMessage({ action: "addGame", gameInfo });
-		} else {
-			console.warn("Failed to retrieve game information.");
-		}
+	}
+	if (request.action === "openInPlaynite") {
+		const anchor = document.createElement("a");
+		anchor.href = request.url;
+		anchor.click();
 	}
 });
 
 
-
-function gameData() {
-	return {};
+function processElements(key, selector, selectorType) {
+	const elmts = document.querySelectorAll(selector);
+	if (elmts.length === 0) {
+		console.error(`No elements found for selector: ${selector}`);
+		return null;
+	}
+	let data;
+	//console.log(elmts.length, elmts);
+	for (const elmt of elmts) {
+		switch (selectorType) {
+			case "extTxt":
+				data = elmt.textContent
+					.replace("™", "")
+					.trim()
+					.toLowerCase()
+					.replace(/^\W+|\W+$/g, "");
+				break;
+			case "extLnksTxt":
+				data = [];
+				const links = elmt.querySelectorAll("a");
+				links.forEach((link) =>
+					data.push(
+						link.textContent
+							.trim()
+							.toLowerCase()
+							.replace(/^\W+|\W+$/g, "")
+					)
+				);
+				break;
+			case "innerTextSplit":
+				console.log("inner");
+				data.push(elmt.innerText.split(", "));
+				break;
+			case "extTxtArrBySiblMch":
+				data = [];
+				const siblings = Array.from(elmt.parentNode.childNodes).filter(
+					(node) => node.nodeType === Node.ELEMENT_NODE && node !== elmt
+				);
+				siblings.forEach((cld) => {
+					const textContent = cld.textContent
+						.trim()
+						.toLowerCase()
+						.replace(/^\W+|\W+$/g, "");
+					if (textContent && textContent !== "") {
+						if (key.includes(textContent)) {
+							const links = elmt.querySelectorAll("a");
+							links.forEach((link) =>
+								data.push(
+									link.textContent
+										.trim()
+										.toLowerCase()
+										.replace(/^\W+|\W+$/g, "")
+								)
+							);
+						}
+					}
+				});
+				break;
+			case "arrayKeyMatch":
+				// Implement your array key matching logic here
+				break;
+			// Add more cases for other selector types as needed
+		}
+	}
+	return data;
 }
