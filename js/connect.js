@@ -84,9 +84,6 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			}
 		});
 	}
-});
-
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.action === "click") {
 		var url = window.location.href;
 		let gameInfo;
@@ -111,6 +108,73 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 });
 
+
+function processElements(key, selector, selectorType) {
+	const elmts = document.querySelectorAll(selector);
+	if (elmts.length === 0) {
+		console.error(`No elements found for selector: ${selector}`);
+		return null;
+	}
+	let data;
+	//console.log(elmts.length, elmts);
+	for (const elmt of elmts) {
+		switch (selectorType) {
+			case "extTxt":
+				data = elmt.textContent
+					.replace("™", "")
+					.trim()
+					.toLowerCase()
+					.replace(/^\W+|\W+$/g, "");
+				break;
+			case "extLnksTxt":
+				data = [];
+				const links = elmt.querySelectorAll("a");
+				links.forEach((link) =>
+					data.push(
+						link.textContent
+							.trim()
+							.toLowerCase()
+							.replace(/^\W+|\W+$/g, "")
+					)
+				);
+				break;
+			case "innerTextSplit":
+				console.log("inner");
+				data.push(elmt.innerText.split(", "));
+				break;
+			case "extTxtArrBySiblMch":
+				data = [];
+				const siblings = Array.from(elmt.parentNode.childNodes).filter(
+					(node) => node.nodeType === Node.ELEMENT_NODE && node !== elmt
+				);
+				siblings.forEach((cld) => {
+					const textContent = cld.textContent
+						.trim()
+						.toLowerCase()
+						.replace(/^\W+|\W+$/g, "");
+					if (textContent && textContent !== "") {
+						if (key.includes(textContent)) {
+							const links = elmt.querySelectorAll("a");
+							links.forEach((link) =>
+								data.push(
+									link.textContent
+										.trim()
+										.toLowerCase()
+										.replace(/^\W+|\W+$/g, "")
+								)
+							);
+						}
+					}
+				});
+				break;
+			case "arrayKeyMatch":
+				// Implement your array key matching logic here
+				break;
+			// Add more cases for other selector types as needed
+		}
+	}
+	return data;
+}
 function parseDate(dateString) {
 	// Handle different date formats
 	let parsedDate;

@@ -15,14 +15,6 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 	}
 });
 
-						}
-					});
-				});
-			});
-		}
-	})
-}
-hidePageAction()
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.action === "checkUrl") {
 		const result = doesUrlMatchPattern(request.url, request.pattern);
