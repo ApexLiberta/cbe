@@ -46,7 +46,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			if (sourcesVar) {
 				sourcesVar.forEach((source) => {
 					browser.runtime.sendMessage(
-						{ action: "checkUrl", url: request.tab.url, pattern: source["matches"] },
+						{
+							action: "checkUrl",
+							url: request.tab.url,
+							pattern: source["matches"],
+						},
 						(response) => {
 							if (response) {
 								let data = {};
@@ -58,6 +62,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 									const type = value["type"];
 									data[key] = processElements(key, selector, type);
 								}
+								data["source"] = source.name;
 								browser.runtime.sendMessage({
 									action: "print",
 									data,
@@ -78,7 +83,26 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				});
 			}
 		});
+	}
+});
 
+browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	if (request.action === "click") {
+		var url = window.location.href;
+		let gameInfo;
+
+		if (url.includes("steampowered.com")) {
+			gameInfo = steam();
+		} else if (url.includes("epicgames.com")) {
+			gameInfo = epic();
+		}
+
+		// Ensure gameInfo is valid before sending a message
+		if (gameInfo) {
+			browser.runtime.sendMessage({ action: "addGame", gameInfo });
+		} else {
+			console.warn("Failed to retrieve game information.");
+		}
 	}
 	if (request.action === "openInPlaynite") {
 		const anchor = document.createElement("a");
@@ -87,12 +111,34 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 });
 
+function parseDate(dateString) {
+	// Handle different date formats
+	let parsedDate;
 
-function processElements(key, selector, selectorType) {
-	const elmts = document.querySelectorAll(selector);
-	if (elmts.length === 0) {
-		console.error(`No elements found for selector: ${selector}`);
-		return null;
+	if (dateString.match(/\d{2}\/\d{2}\/\d{2}/)) {
+		// Format: MM/DD/YY
+		parsedDate = new Date(dateString.replace(/\//g, "-"));
+	} else if (dateString.match(/\d{1,2} \w+, \d{4}/)) {
+		// Format: D MMM, YYYY
+		const [day, month, year] = dateString.split(" ");
+		const monthIndex = [
+			"Jan",
+			"Feb",
+			"Mar",
+			"Apr",
+			"May",
+			"Jun",
+			"Jul",
+			"Aug",
+			"Sep",
+			"Oct",
+			"Nov",
+			"Dec",
+		].indexOf(month);
+		parsedDate = new Date(year, monthIndex, day);
+	} else {
+		// Handle other formats or throw an error
+		throw new Error("Invalid date format");
 	}
 	let data;
 	//console.log(elmts.length, elmts);

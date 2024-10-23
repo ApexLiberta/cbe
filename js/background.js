@@ -1,35 +1,19 @@
 import { addGame, getGame, getAllGames } from "./db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./helpers.js";
 
+managePageAction();
+
 browser.browserAction.onClicked.addListener((tab) => {
 	browser.tabs.create({ url: "/library.html" });
 });
 browser.pageAction.onClicked.addListener((tab) => {
 	browser.tabs.sendMessage(tab.id, { action: "pageActionClick", tab });
 });
-/*
-browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-	const url = tabs[0].url;
-});
-*/
 browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 	if (changeInfo.url) {
-		// The tab's URL has changed
-		console.log("Tab with ID", tabId, "has reloaded");
-		// Trigger your background script here
+		managePageAction(tab);
 	}
-	browser.pageAction.hide(tabId);
 });
-function hidePageAction(){
-	const getSrcs = browser.storage.local.get("sources");
-	getSrcs.then((sources) => {
-		const sourcesVar = sources["sources"];
-		if (sourcesVar) {
-			sourcesVar.forEach((source) => {
-				browser.tabs.query({}).then((tabs) => {
-					tabs.forEach((tab) => {
-						if (!doesUrlMatchPattern(tab.url, source["matches"])){
-							browser.pageAction.hide(tab.id);
 
 						}
 					});
@@ -42,6 +26,7 @@ hidePageAction()
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.action === "checkUrl") {
 		const result = doesUrlMatchPattern(request.url, request.pattern);
+		console.log(result, request.url);
 		sendResponse(result);
 	}
 	if (request.action === "pageAction") {
@@ -62,7 +47,6 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		// Assuming addGame is asynchronous (e.g., a promise), we should return true to keep the message channel open.
 		addGame(sortObjectKeys(gameInfo))
 			.then(() => {
-				console.log("Game added successfully:", gameInfo);
 				sendResponse({ success: true });
 			})
 			.catch((error) => {
@@ -114,9 +98,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 						);
 						if (!existingCode) {
 							sources.push(parsedCode);
-							browser.storage.local.set({ sources })
+							browser.storage.local
+								.set({ sources })
 								.then(() => {
 									console.log("Code appended to sources array.");
+									browser.runtime.reload();
 									sendResponse({
 										length: sources.length,
 										code: parsedCode,
@@ -144,10 +130,15 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 	if (request.action === "print") {
 		console.log(request.data);
-		return
+		return;
 	}
 
 	return true;
+});
+
+/*
+browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+	const url = tabs[0].url;
 });
 
 const request = indexedDB.open("myDatabase");
@@ -158,6 +149,38 @@ request.onupgradeneeded = (event) => {
 
 	console.log(databases);
 };
+*/
+
+function managePageAction(tab) {
+	// Retrieve stored sources asynchronously
+	browser.storage.local.get("sources", (sources) => {
+		if (browser.runtime.lastError) {
+			console.error("Error retrieving sources:", browser.runtime.lastError);
+			return; // Handle storage access errors gracefully
+		}
+		const sourcesList = sources.sources || [];
+		sourcesList.forEach((source) => {
+			if (tab) {
+				if (doesUrlMatchPattern(tab.url, source["matches"])) {
+					showPageAction(tab.id);
+				}
+				console.log("tab");
+			} else {
+				console.log("all");
+				browser.tabs.query({}).then((tabs) => {
+					tabs.forEach((tab) => {
+						if (doesUrlMatchPattern(tab.url, source["matches"])) {
+							showPageAction(tab.id);
+						}
+					});
+				});
+			}
+		});
+	});
+}
+function showPageAction(tabId) {
+	browser.pageAction.show(tabId);
+}
 
 async function fetchGistCode(gistId) {
 	try {

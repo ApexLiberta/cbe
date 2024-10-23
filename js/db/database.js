@@ -19,7 +19,7 @@ const objectStoreName = gamesStore;
 
 const sourcesStore = "sources"
 
-function openDB() {
+function openDB(name, version, Indexes) {
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open(gamesDb.name, gamesDb.version);
 
@@ -46,6 +46,7 @@ function openDB() {
 				store.createIndex("ageRating", "ageRating", { unique: false });
 				store.createIndex("region", "region", { unique: false });
 				store.createIndex("source", "source", { unique: false });
+				store.createIndex("links", "links", { unique: false });
 				store.createIndex("completionStatus", "completionStatus", {
 					unique: false,
 				});
@@ -78,7 +79,6 @@ function openDB() {
 // Adding a Game
 const addGame = async (game) => {
 	game = sortObjectKeys(game)
-	console.log('sorted', game)
 	try {
 		const db = await openDB();
 		const tx = db.transaction(objectStoreName, "readwrite");
@@ -100,9 +100,6 @@ const addGame = async (game) => {
 		} else {
 			const updatedGame = { ...result[0], ...game };
 			console.log(findDifferences(game, result[0]));
-			for (const key in game) {
-				console.log(key)
-			}
 			try {
 				await store.put(sortObjectKeys(updatedGame));
 				console.log("Game updated successfully");

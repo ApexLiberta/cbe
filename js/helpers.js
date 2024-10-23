@@ -27,7 +27,6 @@ function findDifferencesType1(obj1, obj2) {
 function findDifferences(obj1, obj2) {
 	const differences = {};
 	const keys = [...new Set([...Object.keys(obj1), ...Object.keys(obj2)])];
-	console.log("keys:", keys);
 	for (const key of keys) {
 		if (obj1[key] !== obj2[key]) {
 			differences[key] = { obj1Value: obj1[key], obj2Value: obj2[key] };
