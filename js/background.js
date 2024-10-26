@@ -1,45 +1,77 @@
 import { addGame, getGame, getAllGames } from "./db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./helpers.js";
 
+(function () {
+	managePageAction();
+})();
+const settings = {
+	addToPlayniteOnGameAdd: {
+		enabled: true,
+		description:
+			"Automatically adds new games to Playnite when they are detected.",
+	},
+	sources: [
+		{
+			name: "steam",
+			gistId: "your_gist_id",
+			version: 0.1,
+			enabled: true,
+			matches: "*://*.steampowered.com/app/*",
+		},
+	],
+};
+browser.runtime.onInstalled.addListener(() => {
+	browser.storage.local
+		.get("settings")
+		.then((result) => {
+			if (!result.settings) {
+				// Settings don't exist, create them with defaults
+				browser.storage.local
+					.set({ settings })
+					.then(() => {
+						console.log("Settings created successfully");
+					})
+					.catch((error) => {
+						console.error("Error saving settings:", error);
+					});
+			} else {
+				console.log("Settings already exist");
+			}
+		})
+		.catch((error) => {
+			console.error("Error loading settings:", error);
+		});
+});
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+	if (changeInfo.url) {
+		managePageAction(tab);
+	}
+});
 browser.browserAction.onClicked.addListener((tab) => {
 	browser.tabs.create({ url: "/library.html" });
 });
 browser.pageAction.onClicked.addListener((tab) => {
 	browser.tabs.sendMessage(tab.id, { action: "pageActionClick", tab });
 });
-/*
-browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-	const url = tabs[0].url;
-});
-*/
-browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-	if (changeInfo.url) {
-		// The tab's URL has changed
-		console.log("Tab with ID", tabId, "has reloaded");
-		// Trigger your background script here
-	}
-	browser.pageAction.hide(tabId);
-});
-function hidePageAction(){
-	const getSrcs = browser.storage.local.get("sources");
-	getSrcs.then((sources) => {
-		const sourcesVar = sources["sources"];
-		if (sourcesVar) {
-			sourcesVar.forEach((source) => {
-				browser.tabs.query({}).then((tabs) => {
-					tabs.forEach((tab) => {
-						if (!doesUrlMatchPattern(tab.url, source["matches"])){
-							browser.pageAction.hide(tab.id);
-
-						}
-					});
-				});
-			});
-		}
-	})
-}
-hidePageAction()
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	if (request.action === "getSettings") {
+		// Get settings from storage
+		browser.storage.local
+			.get("settings")
+			.then((result) => {
+				const settings = result.settings;
+				if(settings){
+					// Send the settings back to the caller (optional)
+					sendResponse(settings);
+				}
+			})
+			.catch((error) => {
+				console.error("Error loading settings:", error);
+				// Send error message back to the caller (optional)
+				sendResponse({ error: "Error loading settings" });
+			});
+	}
+
 	if (request.action === "checkUrl") {
 		const result = doesUrlMatchPattern(request.url, request.pattern);
 		sendResponse(result);
@@ -93,7 +125,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			});
 	}
 
-	if (request.action === "addStore") {
+	if (request.action === "addSource") {
 		fetchGistCode(request.gistId).then((result) => {
 			if (result) {
 				const { fileName, code } = result;
@@ -114,9 +146,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 						);
 						if (!existingCode) {
 							sources.push(parsedCode);
-							browser.storage.local.set({ sources })
+							browser.storage.local
+								.set({ sources })
 								.then(() => {
 									console.log("Code appended to sources array.");
+									browser.runtime.reload();
 									sendResponse({
 										length: sources.length,
 										code: parsedCode,
@@ -133,10 +167,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 						}
 					})
 					.catch((error) =>
-						console.error(
-							"Error retrieving sources from extension storage:",
-							error
-						)
+						console.error("Error Fetching Saved Sources:", error)
 					);
 			}
 		});
@@ -144,21 +175,42 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 	if (request.action === "print") {
 		console.log(request.data);
-		return
+		return;
 	}
 
 	return true;
 });
 
-const request = indexedDB.open("myDatabase");
-
-request.onupgradeneeded = (event) => {
-	const db = event.target.result;
-	const databases = indexedDB.databases();
-
-	console.log(databases);
-};
-
+function managePageAction(tab) {
+	// Retrieve stored sources asynchronously
+	browser.storage.local.get("sources", (sources) => {
+		if (browser.runtime.lastError) {
+			console.error("Error retrieving sources:", browser.runtime.lastError);
+			return; // Handle storage access errors gracefully
+		}
+		const sourcesList = sources.sources || [];
+		sourcesList.forEach((source) => {
+			if (tab) {
+				if (doesUrlMatchPattern(tab.url, source["matches"])) {
+					showPageAction(tab.id);
+				}
+				console.log("tab");
+			} else {
+				console.log("all");
+				browser.tabs.query({}).then((tabs) => {
+					tabs.forEach((tab) => {
+						if (doesUrlMatchPattern(tab.url, source["matches"])) {
+							showPageAction(tab.id);
+						}
+					});
+				});
+			}
+		});
+	});
+}
+function showPageAction(tabId) {
+	browser.pageAction.show(tabId);
+}
 async function fetchGistCode(gistId) {
 	try {
 		const response = await fetch(`https://api.github.com/gists/${gistId}`);

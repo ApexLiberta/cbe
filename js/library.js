@@ -1,6 +1,14 @@
 const gamePopup = document.getElementById("gamePopup");
 const closeButton = document.querySelector(".close-button");
 
+const tstLnk = document.querySelector(".test-link")
+const gameData = {
+	name: "test"
+}
+const tstAnchor = document.createElement("a")
+tstAnchor.href = `playnite://addgame/${JSON.stringify(gameData)}`;
+tstAnchor.innerText = "Link"
+tstLnk.appendChild(tstAnchor)
 //document
 //	.querySelector(".game-library")
 //	.prepend(getShelf({ name: "col1", count: 3 }));

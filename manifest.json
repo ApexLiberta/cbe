@@ -39,7 +39,6 @@
 			"16": "/assets/icons/connect-16.png",
 			"32": "/assets/icons/connect-32.png"
 		},
-		"show_matches": ["<all_urls>"],
 		"default_title": "Add game to Connect"
 	},
 

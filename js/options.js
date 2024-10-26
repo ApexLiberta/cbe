@@ -79,7 +79,7 @@ function addSrcBtnHtml() {
 		submitBtn.addEventListener("click", () => {
 			const element = document.querySelector("#sourceName");
 			browser.runtime.sendMessage(
-				{ action: "addStore", gistId: element.value },
+				{ action: "addSource", gistId: element.value },
 				(response) => {
 					if(response){
 						document.querySelector(
@@ -106,7 +106,16 @@ function addSrcBtnHtml() {
 function updateHtml(){
 
 }
-
+browser.runtime.sendMessage(
+	{ action: "getSettings" },
+	(response) => {
+		if(response){
+			Object.keys(response).forEach((key) => {
+				console.log(key);
+			});
+		}
+	}
+);
 
 /*
 	const sourceUrl = sourceUrlInput.value;
