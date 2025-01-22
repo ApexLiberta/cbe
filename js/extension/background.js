@@ -1,5 +1,8 @@
-import { addGame, getGame, getAllGames } from "./db/database.js";
-import { doesUrlMatchPattern, sortObjectKeys } from "./helpers.js";
+import {
+	openDB, addGame, getGame, getAllGames,
+	createCollection, getCollection, updateCollection, deleteCollection
+} from "../db/database.js";
+import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
 (function () {
 	managePageAction();
@@ -9,16 +12,20 @@ const settings = {
 		enabled: true,
 		description:
 			"Automatically adds new games to Playnite when they are detected.",
+		type: "toggle"
 	},
-	sources: [
-		{
-			name: "steam",
-			gistId: "your_gist_id",
-			version: 0.1,
-			enabled: true,
-			matches: "*://*.steampowered.com/app/*",
-		},
-	],
+	sources: {
+		list: [
+			{
+				name: "steam",
+				gistId: "your_gist_id",
+				version: 0.1,
+				enabled: true,
+				matches: "*://*.steampowered.com/app/*",
+			},
+		],
+		type: "list"
+	},
 };
 browser.runtime.onInstalled.addListener(() => {
 	browser.storage.local
@@ -48,9 +55,10 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 	}
 });
 browser.browserAction.onClicked.addListener((tab) => {
-	browser.tabs.create({ url: "/library.html" });
+	browser.tabs.create({ url: "/index.html" });
 });
 browser.pageAction.onClicked.addListener((tab) => {
+	console.log("Page action clicked:", tab);
 	browser.tabs.sendMessage(tab.id, { action: "pageActionClick", tab });
 });
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -74,6 +82,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 	if (request.action === "checkUrl") {
 		const result = doesUrlMatchPattern(request.url, request.pattern);
+		console.log(request.url, request.pattern);
 		sendResponse(result);
 	}
 	if (request.action === "pageAction") {
@@ -173,6 +182,21 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		});
 	}
 
+	if (request.action === "createCollection") {
+		createCollection("My RPG Collection", { gameIds: [1, 5, 12, 20] })
+			.then(() => console.log("Collection created."))
+			.catch((error) => console.error("Failed to create collection:", error));
+
+		createCollection("My Strategy Games", { gameIds: [3, 7, 15] })
+			.then(() => console.log("Collection created."))
+			.catch((error) => console.error("Failed to create collection:", error));
+
+		createCollection("Games I Want to Play", { gameIds: [] })
+			.then(() => console.log("Collection created."))
+			.catch((error) => console.error("Failed to create collection:", error));
+		console.log("Creating collection...");
+	}
+
 	if (request.action === "print") {
 		console.log(request.data);
 		return;
@@ -225,3 +249,6 @@ async function fetchGistCode(gistId) {
 		return null;
 	}
 }
+
+
+console.log(openDB());

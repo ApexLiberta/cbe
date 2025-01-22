@@ -1,4 +1,15 @@
-import { sortObjectKeys, findDifferences } from "./../helpers.js";
+import { sortObjectKeys, findDifferences } from "../extension/modules/helpers.js";
+
+const DB_NAME = "libraryDb";
+const DB_VERSION = 1;
+
+const GAMES_STORE = "games";
+const COLLECTIONS_STORE = "collections";
+const SOURCES_STORE = "sources";
+
+const NAME_INDEX = "name";
+const DESCRIPTION_INDEX = "description";
+
 
 const gamesDb = {
 	name: "games",
@@ -19,12 +30,26 @@ const objectStoreName = gamesStore;
 
 const sourcesStore = "sources"
 
+
+function initializeDatabase(db) {
+	const transaction = db.transaction(
+		[GAMES_STORE, SOURCES_STORE, COLLECTIONS_STORE],
+		"versionchange"
+	);
+	const gamesStore = transaction.objectStore(GAMES_STORE);
+	gamesStore.createIndex(NAME_INDEX, "name", { unique: true });
+	if (!db.objectStoreNames.contains(SOURCES_STORE)) {
+		db.createObjectStore(SOURCES_STORE, { keyPath: "id", autoIncrement: true });
+	}
+}
+
 function openDB() {
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open(gamesDb.name, gamesDb.version);
 
 		request.onupgradeneeded = (event) => {
 			const db = event.target.result;
+			console.log(db)
 
 			// Assuming you have a database object named `db` and a store name `gamesStore`
 			if (!db.objectStoreNames.contains(gamesStore)) {
@@ -62,14 +87,25 @@ function openDB() {
 					autoIncrement: true, // Optional: automatically generate IDs
 				});
 			}
+			if (!db.objectStoreNames.contains(COLLECTIONS_STORE)) {
+				const store = db.createObjectStore(COLLECTIONS_STORE, {
+					keyPath: "id", // Define a unique key path for sources
+					autoIncrement: true, // Optional: automatically generate IDs
+				});
+			}
 		};
 
 		request.onsuccess = (event) => {
-			db = event.target.result;
+			const db = event.target.result;
+			db.onversionchange = () => {
+				db.close();
+				alert("Database is being upgraded. Please refresh.");
+			};
 			resolve(db);
 		};
 
 		request.onerror = (event) => {
+			console.error("IndexedDB open error:", event.target.error);
 			reject(event.target.error);
 		};
 	});
@@ -232,4 +268,70 @@ function exportIndexedDB() {
 
 
 
-export { openDB, addGame, getAllGames, getGame, exportIndexedDB };
+//Collections
+async function createCollection(collectionName, data) {
+	const db = await openDB();
+	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
+	const store = transaction.objectStore(COLLECTIONS_STORE);
+	const addRequest = store.add({ name: collectionName, ...data });
+	addRequest.onsuccess = (event) => {
+		console.log("Collection created successfully:", event.target.result);
+	};
+	addRequest.onerror = (event) => {
+		console.error("Error creating collection:", event.target.error);
+	};
+	await transaction.complete;
+}
+async function getCollection(collectionName) {
+	const db = await openDB();
+	const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
+	const store = transaction.objectStore(COLLECTIONS_STORE);
+	const getRequest = store.get(collectionName);
+	getRequest.onsuccess = (event) => {
+		console.log("Collection retrieved:", event.target.result);
+	};
+	getRequest.onerror = (event) => {
+		console.error("Error retrieving collection:", event.target.error);
+	};
+	const result = await transaction.complete;
+	return result;
+}
+async function updateCollection(collectionName, data) {
+	const db = await openDB();
+	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
+	const store = transaction.objectStore(COLLECTIONS_STORE);
+	const collection = await getCollection(collectionName);
+	if (!collection) {
+		console.error("Collection not found for update:", collectionName);
+		return;
+	}
+	collection.data = data;
+	const putRequest = store.put(collection);
+	putRequest.onsuccess = (event) => {
+		console.log("Collection updated successfully:", event.target.result);
+	};
+	putRequest.onerror = (event) => {
+		console.error("Error updating collection:", event.target.error);
+	};
+	await transaction.complete;
+}
+async function deleteCollection(collectionName) {
+	const db = await openDB();
+	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
+	const store = transaction.objectStore(COLLECTIONS_STORE);
+	const deleteRequest = store.delete(collectionName);
+	deleteRequest.onsuccess = (event) => {
+		console.log("Collection deleted successfully:", event.target.result);
+	};
+	deleteRequest.onerror = (event) => {
+		console.error("Error deleting collection:", event.target.error);
+	};
+	await transaction.complete;
+}
+
+
+export {
+	openDB, addGame, getAllGames, getGame,
+	exportIndexedDB,
+	createCollection, getCollection, updateCollection, deleteCollection
+};
