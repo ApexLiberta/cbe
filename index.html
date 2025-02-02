@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connect Library</title>
-    <link rel="stylesheet" href="/css/index.css">
+
     <link rel="shortcut icon" href="/assets/icons/connect-32.png" type="image/x-icon">
+
+    <link href="/assets/fontawesome/css/fontawesome.css" rel="stylesheet" />
+    <link href="/assets/fontawesome/css/brands.css" rel="stylesheet" />
+    <link href="/assets/fontawesome/css/solid.css" rel="stylesheet" />
+    <link href="/assets/fontawesome/css/sharp-thin.css" rel="stylesheet" />
+    <link href="/assets/fontawesome/css/duotone-thin.css" rel="stylesheet" />
+    <link href="/assets/fontawesome/css/sharp-duotone-thin.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="/css/index.css">
 
     <style>
         .playnite-container {
@@ -49,11 +57,11 @@
             <h2>library</h2>
         </div>
         <div class="sync-btn-cont">
-            <a href="./pages/settings.html" target="_blank" rel="noopener noreferrer">Settings</a>
+            <span id="settings-trigger">Settings</span>
         </div>
     </header>
     <main class="library-container">
-        <aside class="library-sidebar">
+        <aside class="library-sidebar" style="display: none;">
             <div class="sidebar-header">
                 <button id="library-home-btn">Home</button>
                 <button class="library-collection-icon-btn"><img src="./../assets/collections.png" alt=""

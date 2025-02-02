@@ -1,3 +1,16 @@
+browser.runtime
+	.sendMessage({ action: "getSettings" })
+	.then((response) => {
+		if (response) {
+			Object.entries(response).forEach(([key, value]) => {
+				console.info(key, value, value.type);
+			});
+		}
+	})
+	.catch((error) => {
+		console.error("Error adding source:", error);
+	});
+
 function getSettings() {
 	return browser.storage.local
 		.get("settings")
@@ -7,7 +20,7 @@ function getSettings() {
 			return {};
 		});
 }
-getSettings().then(pagehtml)
+getSettings().then(pagehtml);
 function pagehtml(settings) {
 	const mainTag = document.querySelector("main");
 
@@ -51,10 +64,6 @@ function pagehtml(settings) {
 	});
 }
 
-
-
-
-
 // Fetch sources from storage and handle errors consistently
 function getSources() {
 	return browser.storage.local
@@ -90,6 +99,7 @@ function addSource(gistId) {
 		.sendMessage({ action: "addSource", gistId })
 		.then((response) => {
 			if (response) {
+				console.log(response, response.code);
 				updateSourceList([response]); // Update list with single new source
 				document.querySelector("#addSource").classList.remove("ghost");
 			}
@@ -107,11 +117,11 @@ function toggleAddSourceForm() {
 	if (addSourceBtn.classList.contains("active")) {
 		addSourceBtn.classList.remove("active");
 		addSourceBtn.textContent = "Add Source";
-		addSourceBtn.classList.toggle("ghost")
+		addSourceBtn.classList.toggle("ghost");
 		if (inputFd) inputFd.remove(); // Remove existing form if present
 	} else {
 		addSourceBtn.classList.add("active");
-		addSourceBtn.classList.toggle("ghost")
+		addSourceBtn.classList.toggle("ghost");
 
 		// Create new form elements only if needed
 		if (!inputFd) {

@@ -6,6 +6,7 @@ const DB_VERSION = 1;
 const GAMES_STORE = "games";
 const COLLECTIONS_STORE = "collections";
 const SOURCES_STORE = "sources";
+const SHELFS_STORE = "shelfs";
 
 const NAME_INDEX = "name";
 const DESCRIPTION_INDEX = "description";
@@ -33,7 +34,7 @@ const sourcesStore = "sources"
 
 function initializeDatabase(db) {
 	const transaction = db.transaction(
-		[GAMES_STORE, SOURCES_STORE, COLLECTIONS_STORE],
+		[GAMES_STORE, SOURCES_STORE, COLLECTIONS_STORE, SHELFS_STORE],
 		"versionchange"
 	);
 	const gamesStore = transaction.objectStore(GAMES_STORE);
@@ -52,8 +53,8 @@ function openDB() {
 			console.log(db)
 
 			// Assuming you have a database object named `db` and a store name `gamesStore`
-			if (!db.objectStoreNames.contains(gamesStore)) {
-				const store = db.createObjectStore(gamesStore, {
+			if (!db.objectStoreNames.contains(GAMES_STORE)) {
+				const store = db.createObjectStore(GAMES_STORE, {
 					keyPath: "id",
 					autoIncrement: true,
 				});
@@ -81,14 +82,45 @@ function openDB() {
 				});
 			}
 			// Create sourcesStore with relevant keyPath
-			if (!db.objectStoreNames.contains(sourcesStore)) {
-				const store = db.createObjectStore(sourcesStore, {
+			if (!db.objectStoreNames.contains(SOURCES_STORE)) {
+				const store = db.createObjectStore(SOURCES_STORE, {
 					keyPath: "id", // Define a unique key path for sources
 					autoIncrement: true, // Optional: automatically generate IDs
 				});
+				store.createIndex("name", "name", { unique: true });
+				store.createIndex("version", "version");
+				store.createIndex("matches", "matches");
+				store.createIndex("selectors", "selectors");
 			}
 			if (!db.objectStoreNames.contains(COLLECTIONS_STORE)) {
 				const store = db.createObjectStore(COLLECTIONS_STORE, {
+					keyPath: "name",
+				});
+				store.createIndex("collection_type", "collection_type");
+				store.createIndex("include_genres", "include_genres", {
+					multiEntry: true,
+				});
+				store.createIndex("exclude_genres", "exclude_genres", {
+					multiEntry: true,
+				});
+				store.createIndex("include_features", "include_features", {
+					multiEntry: true,
+				});
+				store.createIndex("exclude_features", "exclude_features", {
+					multiEntry: true,
+				});
+				store.createIndex("include_tags", "include_tags", {
+					multiEntry: true,
+				});
+				store.createIndex("exclude_tags", "exclude_tags", {
+					multiEntry: true,
+				});
+				store.createIndex("include_stores", "include_stores");
+				store.createIndex("hidden", "hedden");
+
+			}
+			if (!db.objectStoreNames.contains(SHELFS_STORE)) {
+				const store = db.createObjectStore(SHELFS_STORE, {
 					keyPath: "id", // Define a unique key path for sources
 					autoIncrement: true, // Optional: automatically generate IDs
 				});
@@ -263,12 +295,137 @@ function exportIndexedDB() {
 }
 
 
+// Sources
+async function addOrUpdateSource(sourceData) {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([SOURCES_STORE], "readwrite");
+		const store = transaction.objectStore(SOURCES_STORE);
 
+		// Check if a source with the same name and matches already exists
+		const nameIndex = store.index("name");
+		const nameRequest = nameIndex.get(sourceData.name);
 
+		return new Promise((resolve, reject) => {
+			nameRequest.onsuccess = async (event) => {
+				const existingSourceByName = event.target.result;
 
+				if (existingSourceByName) {
+					const matchesIndex = store.index("matches");
+					const matchesRequest = matchesIndex.get(sourceData.matches);
+
+					matchesRequest.onsuccess = async (event2) => {
+						const existingSourceByMatches = event2.target.result;
+						if (
+							existingSourceByMatches &&
+							existingSourceByMatches.id === existingSourceByName.id
+						) {
+							// Source with same name and matches exists: UPDATE
+							sourceData.id = existingSourceByName.id; // Preserve the existing ID
+							const updateRequest = store.put(sourceData);
+
+							updateRequest.onsuccess = () =>
+								resolve({ action: "updated", id: existingSourceByName.id, source: sourceData });
+							updateRequest.onerror = (event) =>
+								reject("Error updating source: " + event.target.errorCode);
+						} else {
+							// Source with same name but different matches exists: Reject
+							reject(
+								"A source with the same name but different matches already exists."
+							);
+						}
+					};
+					matchesRequest.onerror = (event) =>
+						reject(
+							"Error checking source by matches: " + event.target.errorCode
+						);
+				} else {
+					// No source with the same name exists: CREATE
+					const addRequest = store.add(sourceData);
+					addRequest.onsuccess = (event) =>
+						resolve({ action: "created", id: event.target.result, source: sourceData });
+					addRequest.onerror = (event) =>
+						reject("Error adding source: " + event.target.errorCode);
+				}
+			};
+			nameRequest.onerror = (event) =>
+				reject("Error checking source by name: " + event.target.errorCode);
+		});
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
+}
+async function deleteSource(name) {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([SOURCES_STORE], "readwrite");
+		const store = transaction.objectStore(SOURCES_STORE);
+		const request = store.delete(name);
+
+		return new Promise((resolve, reject) => {
+			request.onsuccess = () => resolve();
+			request.onerror = (event) =>
+				reject("Error deleting source: " + event.target.errorCode);
+		});
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
+}
+
+async function getSourceById(id) {}
+async function getAllSources() {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([SOURCES_STORE], "readonly");
+		const store = transaction.objectStore(SOURCES_STORE);
+		const request = store.getAll();
+
+		return new Promise((resolve, reject) => {
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) =>
+				reject("Error getting all sources: " + event.target.errorCode);
+		});
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
+}
 
 
 //Collections
+async function addOrUpdateCollection(collectionName, data) {
+	const db = await openDB();
+	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
+	const store = transaction.objectStore(COLLECTIONS_STORE);
+
+	const getRequest = store.get(collectionName);
+	const result = await getRequest.result;
+
+	const putRequest = result
+		? store.put({ ...result, ...data })
+		: store.add({ name: collectionName, ...data });
+
+	putRequest.onsuccess = (event) => {
+		console.log(
+			result
+				? "Collection updated successfully"
+				: "Collection created successfully",
+			event.target.result
+		);
+	};
+
+	putRequest.onerror = (event) => {
+		console.error(
+			result ? "Error updating collection" : "Error creating collection",
+			event.target.error
+		);
+	};
+
+	await transaction.complete;
+}
+
 async function createCollection(collectionName, data) {
 	const db = await openDB();
 	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
@@ -282,19 +439,42 @@ async function createCollection(collectionName, data) {
 	};
 	await transaction.complete;
 }
-async function getCollection(collectionName) {
+async function getCollection(name) {
 	const db = await openDB();
 	const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
 	const store = transaction.objectStore(COLLECTIONS_STORE);
-	const getRequest = store.get(collectionName);
-	getRequest.onsuccess = (event) => {
-		console.log("Collection retrieved:", event.target.result);
-	};
-	getRequest.onerror = (event) => {
-		console.error("Error retrieving collection:", event.target.error);
-	};
-	const result = await transaction.complete;
-	return result;
+
+	return new Promise((resolve, reject) => {
+		const getRequest = store.get(name);
+
+		getRequest.onsuccess = (event) => {
+			console.log("Collection retrieved:", event.target.result);
+			resolve(event.target.result); // Resolve with the retrieved collection
+		};
+
+		getRequest.onerror = (event) => {
+			console.error("Error retrieving collection:", event.target.error);
+			reject(event.target.error); // Reject with the error
+		};
+	});
+}
+async function getAllCollections() {
+	const db = await openDB();
+	const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
+	const store = transaction.objectStore(COLLECTIONS_STORE);
+
+	return new Promise((resolve, reject) => {
+		const getAllRequest = store.getAll();
+		getAllRequest.onsuccess = (event) => {
+			//console.log("Collections retrieved:", event.target.result);
+			resolve(event.target.result);
+		};
+
+		getAllRequest.onerror = (event) => {
+			//console.error("Error retrieving collections:", event.target.error);
+			reject(event.target.error);
+		};
+	});
 }
 async function updateCollection(collectionName, data) {
 	const db = await openDB();
@@ -330,8 +510,11 @@ async function deleteCollection(collectionName) {
 }
 
 
+
+
 export {
 	openDB, addGame, getAllGames, getGame,
 	exportIndexedDB,
-	createCollection, getCollection, updateCollection, deleteCollection
+	addOrUpdateSource, getSourceById, getAllSources, deleteSource,
+	createCollection, getCollection, getAllCollections, updateCollection, deleteCollection
 };

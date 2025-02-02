@@ -1,6 +1,7 @@
 import {
 	openDB, addGame, getGame, getAllGames,
-	createCollection, getCollection, updateCollection, deleteCollection
+	createCollection, getCollection, getAllCollections, updateCollection, deleteCollection,
+	addOrUpdateSource, getAllSources
 } from "../db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
@@ -8,23 +9,59 @@ import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 	managePageAction();
 })();
 const settings = {
-	addToPlayniteOnGameAdd: {
-		enabled: true,
-		description:
-			"Automatically adds new games to Playnite when they are detected.",
-		type: "toggle"
-	},
-	sources: {
-		list: [
-			{
-				name: "steam",
-				gistId: "your_gist_id",
-				version: 0.1,
+	overview: {
+		config: {
+			addToPlayniteOnGameAdd: {
 				enabled: true,
-				matches: "*://*.steampowered.com/app/*",
+				description:
+					"Automatically adds new games to Playnite when they are detected.",
+				type: "toggle",
 			},
-		],
-		type: "list"
+			optionsPage: {
+				description: "Show the options page in the extension popup.",
+				type: "link",
+				href: "/pages/extension/options.html",
+			}
+		},
+		type: "list",
+	},
+	libraries: {
+		config: {
+			sources: {
+				description: "List of sources to check for game information.",
+				list: [
+					{
+						name: "steam",
+						gistId: "your_gist_id",
+						version: 0.1,
+						enabled: true,
+						matches: "*://*.steampowered.com/app/*",
+					},
+				],
+				type: "list",
+			},
+			filters: {
+				description: "List of filters to apply to game information.",
+				list: [],
+				type: "list",
+			},
+			tags: {
+				description: "List of tags to apply to games.",
+				list: [],
+				type: "list",
+			},
+			features: {
+				description: "List of features to apply to games.",
+				list: [],
+				type: "list",
+			},
+			collections: {
+				description: "List of collections to organize games.",
+				list: [],
+				type: "list",
+			},
+		},
+		type: "group",
 	},
 };
 browser.runtime.onInstalled.addListener(() => {
@@ -66,17 +103,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		// Get settings from storage
 		browser.storage.local
 			.get("settings")
-			.then((result) => {
-				const settings = result.settings;
-				if(settings){
-					// Send the settings back to the caller (optional)
-					sendResponse(settings);
-				}
-			})
+			.then((result) => sendResponse(result.settings || {}))
 			.catch((error) => {
-				console.error("Error loading settings:", error);
-				// Send error message back to the caller (optional)
+				console.error("Error getting settings:", error);
 				sendResponse({ error: "Error loading settings" });
+				return {};
 			});
 	}
 
@@ -145,6 +176,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 					console.error("Error parsing code:", error);
 					return;
 				}
+				addOrUpdateSource(parsedCode);
 				// Check if parsedCode already exists in sources
 				browser.storage.local
 					.get("sources")
@@ -195,6 +227,15 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			.then(() => console.log("Collection created."))
 			.catch((error) => console.error("Failed to create collection:", error));
 		console.log("Creating collection...");
+	}
+	if (request.action === "getAllCollections") {
+		getAllCollections()
+			.then((collections) => {
+				sendResponse({ collections });
+			})
+			.catch((error) => {
+				console.error("Error in getAllCollections:", error);
+			});
 	}
 
 	if (request.action === "print") {
