@@ -40,49 +40,51 @@ export function dialogManager(html) {
 export const gameDetailsDialog = () => {};
 export const createCollectionDialog = () => {
 	return `
-        <div class="dialog-header">
-            <div class="flex-row">
-                <h3 style="margin-right: auto">
-                    <label for="collection-title">
-                        New Collection: <output name="result" for="collection-title"></output>
-                    </label>
-                </h3>
-                <div class="checkbox-container" title="show in sidebar">
-                    <label for="show-in-sidebar">Show in sidebar</label>
-                    <input type="checkbox" name="show-in-sidebar" id="show-in-sidebar">
+        <form id="create-collection-form">
+            <div class="dialog-header">
+                <div class="flex-row">
+                    <h3 style="margin-right: auto">
+                        <label for="collection-title">
+                            New Collection: <span id="collection-title-display"></span>
+                        </label>
+                    </h3>
+                    <div class="checkbox-container" title="show in sidebar">
+                        <label for="show-in-sidebar">Show in sidebar</label>
+                        <input type="checkbox" name="show-in-sidebar" id="show-in-sidebar">
+                    </div>
+                    <div class="checkbox-container" title="private">
+                        <label for="private">
+                            <i class="fa-solid fa-lock"></i>
+                        </label>
+                        <input type="checkbox" name="private" id="private">
+                    </div>
+                    <div class="checkbox-container" title="hidden">
+                        <label for="hidden">
+                            <i class="fa-regular fa-eye-slash"></i>
+                        </label>
+                        <input type="checkbox" name="hidden" id="hidden">
+                    </div>
                 </div>
-                <div class="checkbox-container" title="private">
-                    <label for="private">
-                        <i class="fa-solid fa-lock"></i>
-                    </label>
-                    <input type="checkbox" name="private" id="private">
-                </div>
-                <div class="checkbox-container" title="hidden">
-                    <label for="hidden">
-                        <i class="fa-regular fa-eye-slash"></i>
-                    </label>
-                    <input type="checkbox" name="hidden" id="hidden">
+                <p><label for="collection-title">Collection Title: <span class="warn-text">(REQUIRED)</span></label></p>
+            </div>
+            <div class="input-container" style="margin: 12px 0;">
+                <input type="text" name="collection-title" id="collection-title" maxlength="32" required aria-describedby="title-help">
+                <div id="title-help">Enter a name for the collection.</div>
+            </div>
+            <div class="collection-type-selection">
+                <h4>SELECT A COLLECTION TYPE</h4>
+                <div class="flex-row equal">
+                    <div class="collection-type-option">
+                        <button type="submit" id="create-regular" value="static">Create Collection</button>
+                        <p>A collection is a simple way of organizing your library. Drag titles onto the collection or right-click a title to add it to an existing collection.</p>
+                    </div>
+                    <div class="collection-type-option">
+                        <button type="submit" id="create-dynamic" value="dynamic">Create Dynamic Collection</button>
+                        <p>Dynamic collections use filters to create collections that update as your library grows.</p>
+                    </div>
                 </div>
             </div>
-            <p><label for="collection-title">Collection Title: <span class="warn-text">(REQUIRED)</span></label></p>
-        </div>
-        <div class="input-container" style="margin: 12px 0;">
-            <input type="text" name="collection-title" id="collection-title" maxlength="32" required aria-describedby="title-help">
-            <div id="title-help">Enter a name for the collection.</div>
-        </div>
-        <div class="collection-type-selection">
-            <h4>SELECT A COLLECTION TYPE</h4>
-            <div class="flex-row equal">
-                <div class="collection-type-option">
-                    <button type="button" id="create-regular">CREATE COLLECTION</button>
-                    <p>A collection is a simple way of organizing your library. Drag titles onto the collection or right-click a title to add it to an existing collection.</p>
-                </div>
-                <div class="collection-type-option">
-                    <button type="button" id="create-dynamic">CREATE DYNAMIC COLLECTION</button>
-                    <p>Dynamic collections use filters to create collections that update as your library grows.</p>
-                </div>
-            </div>
-        </div>
+        </form>
     `;
 };
 export const connectSettingsDialog = () => {

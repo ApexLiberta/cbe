@@ -1,8 +1,8 @@
-function loadCollection() {
+export function loadColl() {
     // Load all the collection items
     console.log('Loading collection items');
 }
-function createCollectionHtml() {
+export function createCollHtml() {
     //return `<div class="collection">${name}</div>`;
     const div = document.createElement("div");
     div.innerHTML = `
@@ -32,9 +32,17 @@ function createCollectionHtml() {
 
     return div;
 }
-function createCollection(name, options) {
+export function createColl(name, options) {
     // Create a new collection with the given name and options
     console.log(`Creating collection: ${name}`);
 }
 
-export { loadCollection, createCollection, createCollectionHtml };
+
+export function collFiltersHtml() {
+	const contDiv = document.createElement("div");
+	return contDiv;
+}
+export function collSettingsHtml() {
+	const contDiv = document.createElement("div");
+	return contDiv;
+}

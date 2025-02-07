@@ -1,6 +1,6 @@
 import {
 	openDB, addGame, getGame, getAllGames,
-	createCollection, getCollection, getAllCollections, updateCollection, deleteCollection,
+	addOrUpdateCollection, getCollectionOrAll, deleteCollection,
 	addOrUpdateSource, getAllSources
 } from "../db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
@@ -214,22 +214,21 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		});
 	}
 
-	if (request.action === "createCollection") {
-		createCollection("My RPG Collection", { gameIds: [1, 5, 12, 20] })
-			.then(() => console.log("Collection created."))
-			.catch((error) => console.error("Failed to create collection:", error));
-
-		createCollection("My Strategy Games", { gameIds: [3, 7, 15] })
-			.then(() => console.log("Collection created."))
-			.catch((error) => console.error("Failed to create collection:", error));
-
-		createCollection("Games I Want to Play", { gameIds: [] })
-			.then(() => console.log("Collection created."))
-			.catch((error) => console.error("Failed to create collection:", error));
-		console.log("Creating collection...");
+	if (request.action === "addOrUpdateCollection") {
+		addOrUpdateCollection(request.name, request.data)
+			.then((returnData) => {
+				const mergedObject = {
+					...{ success: true },
+					...returnData,
+				};
+				sendResponse(mergedObject);
+			})
+			.catch((error) => {
+				sendResponse({ success: false, error: error.message });
+			});
 	}
 	if (request.action === "getAllCollections") {
-		getAllCollections()
+		getCollectionOrAll()
 			.then((collections) => {
 				sendResponse({ collections });
 			})

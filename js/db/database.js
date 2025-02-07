@@ -96,7 +96,6 @@ function openDB() {
 				const store = db.createObjectStore(COLLECTIONS_STORE, {
 					keyPath: "name",
 				});
-				store.createIndex("collection_type", "collection_type");
 				store.createIndex("include_genres", "include_genres", {
 					multiEntry: true,
 				});
@@ -115,9 +114,17 @@ function openDB() {
 				store.createIndex("exclude_tags", "exclude_tags", {
 					multiEntry: true,
 				});
-				store.createIndex("include_stores", "include_stores");
-				store.createIndex("hidden", "hedden");
-
+				store.createIndex("include_stores", "include_stores", {
+					multiEntry: true,
+				});
+				store.createIndex("exclude_stores", "exclude_stores", {
+					multiEntry: true,
+				});
+				store.createIndex("isDynamic", "isDynamic");
+				store.createIndex("isHidden", "isHidden");
+				store.createIndex("inSidebar", "inSidebar");
+				store.createIndex("isPrivate", "isPrivate");
+				store.createIndex("games", "games");
 			}
 			if (!db.objectStoreNames.contains(SHELFS_STORE)) {
 				const store = db.createObjectStore(SHELFS_STORE, {
@@ -392,108 +399,177 @@ async function getAllSources() {
 		throw error;
 	}
 }
-
-
-//Collections
-async function addOrUpdateCollection(collectionName, data) {
+/*
+async function addOrUpdateCollection(name, data) {
 	const db = await openDB();
-	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
-	const store = transaction.objectStore(COLLECTIONS_STORE);
+	const tx = db.transaction(COLLECTIONS_STORE, "readwrite");
+	const store = tx.objectStore(COLLECTIONS_STORE);
 
-	const getRequest = store.get(collectionName);
-	const result = await getRequest.result;
+	try {
+		const existingItem = await store.get(name);
 
-	const putRequest = result
-		? store.put({ ...result, ...data })
-		: store.add({ name: collectionName, ...data });
+		await (existingItem.onsuccess
+			? store.put({ ...existingItem, ...data })
+			: store.add({ name, ...data }));
 
-	putRequest.onsuccess = (event) => {
-		console.log(
-			result
-				? "Collection updated successfully"
-				: "Collection created successfully",
-			event.target.result
-		);
-	};
-
-	putRequest.onerror = (event) => {
-		console.error(
-			result ? "Error updating collection" : "Error creating collection",
-			event.target.error
-		);
-	};
-
-	await transaction.complete;
+		console.log(existingItem ? "Updated" : "Created");
+	} catch (error) {
+		console.error("Error:", error);
+		throw error;
+	} finally {
+		await tx.complete;
+	}
 }
-
-async function createCollection(collectionName, data) {
+async function addOrUpdateCollection(name, data) {
 	const db = await openDB();
-	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
-	const store = transaction.objectStore(COLLECTIONS_STORE);
-	const addRequest = store.add({ name: collectionName, ...data });
-	addRequest.onsuccess = (event) => {
-		console.log("Collection created successfully:", event.target.result);
-	};
-	addRequest.onerror = (event) => {
-		console.error("Error creating collection:", event.target.error);
-	};
-	await transaction.complete;
+	const tx = db.transaction(COLLECTIONS_STORE, "readwrite");
+	const store = tx.objectStore(COLLECTIONS_STORE);
+
+	try {
+		let condition;
+		const existingItem = await store.get(name);
+
+		//console.group("await test")
+		//	console.log(store.get(name));
+		//	console.log(await store.get(name));
+		//console.groupEnd()
+
+		existingItem.onsuccess = (event) => {
+			if (event.target.result) {
+				store.put({ ...event.target.result, ...data });
+				condition = "updated";
+				console.group("existingItem");
+				console.table(event.target.result);
+				console.groupEnd();
+			} else {
+				store.add({ name, ...data });
+			condition = "created";
+		}
+	}
+		existingItem.onerror = (event) => {
+			condition = "error_getting";
+			console.error("Error getting item:", event.target.error);
+		};
+		await tx.complete;
+		const retrievedItem = await store.get(name);
+		retrievedItem.onsuccess = (event) => {
+			const returnObj = {
+				opperation: condition,
+				opperationStatus: true,
+				data: event.target.result,
+			};
+			console.group("retrievedItem");
+			console.table(returnObj)
+			console.groupEnd();
+			return returnObj
+		};
+		retrievedItem.onerror = (event) => {};
+	} catch (error) {
+		console.error("Error:", error);
+		throw error;
+	} finally {
+		db.close();
+	}
 }
-async function getCollection(name) {
-	const db = await openDB();
-	const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
-	const store = transaction.objectStore(COLLECTIONS_STORE);
+*/
 
-	return new Promise((resolve, reject) => {
-		const getRequest = store.get(name);
+async function addOrUpdateCollection(name, data) {
+	return new Promise(async (resolve, reject) => {
+		// Wrap the entire function in a Promise
+		const db = await openDB();
+		const tx = db.transaction(COLLECTIONS_STORE, "readwrite");
+		const store = tx.objectStore(COLLECTIONS_STORE);
 
-		getRequest.onsuccess = (event) => {
-			console.log("Collection retrieved:", event.target.result);
-			resolve(event.target.result); // Resolve with the retrieved collection
-		};
+		try {
+			const getItemRequest = store.get(name); // Get the IDBRequest directly
 
-		getRequest.onerror = (event) => {
-			console.error("Error retrieving collection:", event.target.error);
-			reject(event.target.error); // Reject with the error
-		};
+			getItemRequest.onsuccess = (event) => {
+				// Attach handlers to the request
+				let operation = "";
+				let resultData = null;
+				if (event.target.result) {
+					operation = "updated";
+					const updatedData = { ...event.target.result, ...data };
+					const putRequest = store.put(updatedData); // Use putRequest for promise handling
+
+					putRequest.onsuccess = (putEvent) => {
+						console.group("existingItem - Updated");
+						console.table(updatedData);
+						console.groupEnd();
+						resultData = updatedData; // Data after update
+					};
+					putRequest.onerror = (putEvent) => {
+						operation = "error_updating";
+						reject(putEvent.target.error); // Reject promise on error
+					};
+				} else {
+					operation = "created";
+					const newData = { name, ...data };
+					const addRequest = store.add(newData); // Use addRequest for promise handling
+					addRequest.onsuccess = (addEvent) => {
+						operation = "created";
+						resultData = newData; // Data after creation
+					};
+					addRequest.onerror = (addEvent) => {
+						operation = "error_creating";
+						reject(addEvent.target.error); // Reject promise on error
+					};
+				}
+
+				tx.oncomplete = () => {
+					// Wait for transaction to complete successfully
+					db.close();
+					resolve({
+						// Resolve the promise with operation details
+						opperation: operation,
+						opperationStatus: true,
+						collection: resultData, // Return the data (could be before or after operation depending on timing, adjust if needed more specific return data)
+					});
+				};
+				tx.onerror = (event) => {
+					db.close();
+					reject(event.target.error); // Reject promise if transaction fails
+				};
+			};
+
+			getItemRequest.onerror = (event) => {
+				db.close();
+				reject(event.target.error); // Reject promise if initial get fails
+			};
+		} catch (error) {
+			db.close();
+			console.error("Error in addOrUpdateCollection:", error);
+			reject(error); // Reject promise if any other error occurs
+		}
 	});
 }
-async function getAllCollections() {
+
+async function getCollectionOrAll(name) {
 	const db = await openDB();
 	const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
 	const store = transaction.objectStore(COLLECTIONS_STORE);
 
 	return new Promise((resolve, reject) => {
-		const getAllRequest = store.getAll();
-		getAllRequest.onsuccess = (event) => {
-			//console.log("Collections retrieved:", event.target.result);
-			resolve(event.target.result);
+		let request;
+		if (name) {
+			// Check if a name is provided
+			request = store.get(name);
+		} else {
+			request = store.getAll();
+		}
+
+		request.onsuccess = (event) => {
+			console.group("Collection(s) retrieved:");
+				console.table(event.target.result);
+			console.groupEnd();
+			resolve(event.target.result); // Resolve with the result (either a single collection or an array of collections)
 		};
 
-		getAllRequest.onerror = (event) => {
-			//console.error("Error retrieving collections:", event.target.error);
+		request.onerror = (event) => {
+			console.error("Error retrieving collection(s):", event.target.error);
 			reject(event.target.error);
 		};
 	});
-}
-async function updateCollection(collectionName, data) {
-	const db = await openDB();
-	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
-	const store = transaction.objectStore(COLLECTIONS_STORE);
-	const collection = await getCollection(collectionName);
-	if (!collection) {
-		console.error("Collection not found for update:", collectionName);
-		return;
-	}
-	collection.data = data;
-	const putRequest = store.put(collection);
-	putRequest.onsuccess = (event) => {
-		console.log("Collection updated successfully:", event.target.result);
-	};
-	putRequest.onerror = (event) => {
-		console.error("Error updating collection:", event.target.error);
-	};
-	await transaction.complete;
 }
 async function deleteCollection(collectionName) {
 	const db = await openDB();
@@ -511,10 +587,9 @@ async function deleteCollection(collectionName) {
 
 
 
-
 export {
 	openDB, addGame, getAllGames, getGame,
 	exportIndexedDB,
 	addOrUpdateSource, getSourceById, getAllSources, deleteSource,
-	createCollection, getCollection, getAllCollections, updateCollection, deleteCollection
+	addOrUpdateCollection, getCollectionOrAll, deleteCollection
 };
