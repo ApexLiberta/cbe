@@ -7,6 +7,7 @@ const GAMES_STORE = "games";
 const COLLECTIONS_STORE = "collections";
 const SOURCES_STORE = "sources";
 const SHELFS_STORE = "shelfs";
+const FILTERS_STORE = "shelfs";
 
 const NAME_INDEX = "name";
 const DESCRIPTION_INDEX = "description";
@@ -59,27 +60,23 @@ function openDB() {
 					autoIncrement: true,
 				});
 				store.createIndex("name", "name", { unique: true });
-				store.createIndex("description", "description", { unique: false });
-				store.createIndex("platform", "platform", { unique: false });
-				store.createIndex("developers", "developers", { unique: false });
-				store.createIndex("publishers", "publishers", { unique: false });
-				store.createIndex("categories", "categories", { unique: false });
-				store.createIndex("genres", "genres", { unique: false });
-				store.createIndex("features", "features", { unique: false });
-				store.createIndex("tags", "tags", { unique: false });
-				store.createIndex("releaseDate", "releaseDate", { unique: false });
-				store.createIndex("series", "series", { unique: false });
-				store.createIndex("ageRating", "ageRating", { unique: false });
-				store.createIndex("region", "region", { unique: false });
-				store.createIndex("source", "source", { unique: false });
-				store.createIndex("completionStatus", "completionStatus", {
-					unique: false,
-				});
-				store.createIndex("userScore", "userScore", { unique: false });
-				store.createIndex("criticScore", "criticScore", { unique: false });
-				store.createIndex("communityScore", "communityScore", {
-					unique: false,
-				});
+				store.createIndex("description", "description");
+				store.createIndex("platform", "platform", { multiEntry: true, });
+				store.createIndex("developers", "developers", { multiEntry: true, });
+				store.createIndex("publishers", "publishers", { multiEntry: true, });
+				store.createIndex("categories", "categories", { multiEntry: true, });
+				store.createIndex("genres", "genres", { multiEntry: true, });
+				store.createIndex("features", "features", { multiEntry: true, });
+				store.createIndex("tags", "tags", { multiEntry: true });
+				store.createIndex("releaseDate", "releaseDate");
+				store.createIndex("series", "series");
+				store.createIndex("ageRating", "ageRating");
+				store.createIndex("region", "region");
+				store.createIndex("source", "source", { multiEntry: true });
+				store.createIndex("completionStatus", "completionStatus");
+				store.createIndex("userScore", "userScore");
+				store.createIndex("criticScore", "criticScore");
+				store.createIndex("communityScore", "communityScore");
 			}
 			// Create sourcesStore with relevant keyPath
 			if (!db.objectStoreNames.contains(SOURCES_STORE)) {
@@ -124,10 +121,15 @@ function openDB() {
 				store.createIndex("isHidden", "isHidden");
 				store.createIndex("inSidebar", "inSidebar");
 				store.createIndex("isPrivate", "isPrivate");
-				store.createIndex("games", "games");
 			}
 			if (!db.objectStoreNames.contains(SHELFS_STORE)) {
 				const store = db.createObjectStore(SHELFS_STORE, {
+					keyPath: "id", // Define a unique key path for sources
+					autoIncrement: true, // Optional: automatically generate IDs
+				});
+			}
+			if (!db.objectStoreNames.contains(FILTERS_STORE)) {
+				const store = db.createObjectStore(FILTERS_STORE, {
 					keyPath: "id", // Define a unique key path for sources
 					autoIncrement: true, // Optional: automatically generate IDs
 				});
@@ -399,80 +401,9 @@ async function getAllSources() {
 		throw error;
 	}
 }
-/*
-async function addOrUpdateCollection(name, data) {
-	const db = await openDB();
-	const tx = db.transaction(COLLECTIONS_STORE, "readwrite");
-	const store = tx.objectStore(COLLECTIONS_STORE);
 
-	try {
-		const existingItem = await store.get(name);
 
-		await (existingItem.onsuccess
-			? store.put({ ...existingItem, ...data })
-			: store.add({ name, ...data }));
-
-		console.log(existingItem ? "Updated" : "Created");
-	} catch (error) {
-		console.error("Error:", error);
-		throw error;
-	} finally {
-		await tx.complete;
-	}
-}
-async function addOrUpdateCollection(name, data) {
-	const db = await openDB();
-	const tx = db.transaction(COLLECTIONS_STORE, "readwrite");
-	const store = tx.objectStore(COLLECTIONS_STORE);
-
-	try {
-		let condition;
-		const existingItem = await store.get(name);
-
-		//console.group("await test")
-		//	console.log(store.get(name));
-		//	console.log(await store.get(name));
-		//console.groupEnd()
-
-		existingItem.onsuccess = (event) => {
-			if (event.target.result) {
-				store.put({ ...event.target.result, ...data });
-				condition = "updated";
-				console.group("existingItem");
-				console.table(event.target.result);
-				console.groupEnd();
-			} else {
-				store.add({ name, ...data });
-			condition = "created";
-		}
-	}
-		existingItem.onerror = (event) => {
-			condition = "error_getting";
-			console.error("Error getting item:", event.target.error);
-		};
-		await tx.complete;
-		const retrievedItem = await store.get(name);
-		retrievedItem.onsuccess = (event) => {
-			const returnObj = {
-				opperation: condition,
-				opperationStatus: true,
-				data: event.target.result,
-			};
-			console.group("retrievedItem");
-			console.table(returnObj)
-			console.groupEnd();
-			return returnObj
-		};
-		retrievedItem.onerror = (event) => {};
-	} catch (error) {
-		console.error("Error:", error);
-		throw error;
-	} finally {
-		db.close();
-	}
-}
-*/
-
+//collection
 async function addOrUpdateCollection(name, data) {
 	return new Promise(async (resolve, reject) => {
 		// Wrap the entire function in a Promise

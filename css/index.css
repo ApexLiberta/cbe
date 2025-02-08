@@ -672,6 +672,10 @@ a {
 			gap: 5px;
 			align-items: center;
 			padding: 0 12px;
+			background-color: transparent;
+			&:hover{
+				background-color: #52525e;
+			}
 			.icon{
 				font-size: 18px;
 			}
@@ -682,8 +686,10 @@ a {
 		.collection-settings-cont{
 			height: 0px;
 			transition: .3s all ease-in-out;
-			grid-template-columns: repeat(4, 1fr);
-			gap: 20px;
+			grid-template-columns: repeat(auto-fill, minmax(250px, auto));
+			grid-template-columns: repeat(auto-fit, minmax(250px, auto));
+			grid-gap: clamp(10px, 2vw, 20px);
+			gap: clamp(10px, 2vw, 20px);
 			margin: 12px 0 12px 0;
 			display: none;
 			/*overflow: hidden;*/
@@ -717,12 +723,21 @@ a {
 			margin-left: auto;
 		}
 	}
+	.btn-cont{
+		border-radius: 8px;
+		background-color: #2b2a33;
+	}
+	.order-btn{
+		width: clamp(10px, 20%, 44px);
+		border-radius: 8px;
+	}
 	.dropdown-ctx{
 		position: absolute;
 		background-color: rgb(43, 42, 51);
 		margin: 4px 0 0 0;
 		padding: 6px;
 		border-radius: 8px;
+		z-index: 10;
 
 		&.hidden {
 			display: none;
@@ -783,6 +798,9 @@ a {
 			text-transform: capitalize;
 			margin-top: 4px;
 		}
+		p{
+			margin-top: 8px;
+		}
 	}
 }
 
@@ -803,6 +821,7 @@ a {
 	top: 0;
 	width: 100vw;
 	height: 100vh;
+	z-index: 999;
 
 
 	.dialog-header {

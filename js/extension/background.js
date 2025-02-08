@@ -99,6 +99,16 @@ browser.pageAction.onClicked.addListener((tab) => {
 	browser.tabs.sendMessage(tab.id, { action: "pageActionClick", tab });
 });
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	/*
+	switch (operation) {
+		case "mgr_collection":
+			return;
+		default:
+			throw new Error(
+				`Invalid operation: ${operation}. Must be 'addOrUpdate', 'get', 'getAll', or 'delete'.`
+			);
+	}
+	*/
 	if (request.action === "getSettings") {
 		// Get settings from storage
 		browser.storage.local
