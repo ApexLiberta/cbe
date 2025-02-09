@@ -301,7 +301,7 @@ a {
 
 .library-sidebar {
 	width: 275px;
-	margin: 0 8px 0 0;
+	margin: 0 6px 0 6px;
 	display: grid;
 	grid-template-columns: 1fr;
 	grid-template-rows: auto auto auto 1fr;
@@ -311,16 +311,17 @@ a {
 	.sidebar-header {
 		grid-area: sbh;
 		display: flex;
-		margin: 0 0 8px 0;
+		margin: 0 0 6px 0;
 
 		button {
-			height: 42px;
+			height: 36px;
 			border: none;
 			cursor: pointer;
 			font-size: 18px;
+			aspect-ratio: 1/1;
 
 			&:last-child {
-				margin-left: 8px;
+				margin-left: 6px;
 			}
 		}
 
@@ -332,8 +333,58 @@ a {
 			padding: 1px 2px;
 
 			img {
-				width: 40px;
+				width: 26px;
 			}
+		}
+	}
+
+	.search-cont{
+		background-color: rgb(43, 42, 51);
+		margin: 0 0 6px 0;
+
+		.search-icon,
+		input,
+		button {
+			display: inline-block;
+			height: 36px;
+			font-size: 14px;
+			background-color: transparent;
+			border: none;
+			appearance: none;
+			outline: none;
+		}
+
+		.search-bar {
+			display: flex;
+			width: 100%;
+
+			&:focus-within{
+				transition: color 0.2s ease-in-out;
+				.cancel-search-btn{
+					opacity: 1;
+				}
+			}
+
+			input{
+				width: 100%;
+				&::placeholder{
+					color: transparent;
+					transition: color 0.2s ease-in-out;
+				}
+
+				&:active,
+				&:focus {
+					&::placeholder {
+						color: #7b8c90;
+					}
+				}
+			}
+			.cancel-search-btn{
+				opacity: 0;
+			}
+		}
+		.search-icon, button{
+			width: 42px;
 		}
 	}
 
@@ -495,8 +546,8 @@ a {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		background-image: linear-gradient(to right, #292f3b, #282e36);
 		&:hover{
+			background-image: linear-gradient(to right, #292f3b, #282e36);
 			.group-pin{
 				display: block;
 			}
@@ -650,28 +701,41 @@ a {
 	}
 
 	.collection-page {
-		h2 {
+		h2 label {
 			font-family: 'UnderWave';
-			font-size: 36px;
+			font-size: 24px;
 			text-transform: uppercase;
+		}
+		.coll-label-cont{
+			display: flex;
+			align-items: center;
+			.rename-btn{
+				width: 34px;
+				font-size: 24px;
+			}
+			span{
+				height: fit-content;
+				margin: 0 0 0 4px;
+				font-size: 24px;
+			}
 		}
 		.rename-btn{
 			width: 45px;
+			margin: 0 0 0 4px;
 			border-radius: 50%;
-			font-size: 23px;
 			background-color: transparent;
 		}
 		.filter-btn{
 			width: 36px;
 			font-size: 22px;
-			margin: 0 12px 0 auto;
+			margin: 0 6px 0 auto;
 			background-color: transparent;
 		}
 		.collection-settings{
 			display: flex;
 			gap: 5px;
 			align-items: center;
-			padding: 0 12px;
+			padding: 0 6px;
 			background-color: transparent;
 			&:hover{
 				background-color: #52525e;
@@ -681,7 +745,11 @@ a {
 			}
 			h3{
 				margin: 0 4px;
+				font-size: 16px;
 			}
+		}
+		.rename-btn, .filter-btn, .collection-settings{
+			font-size: 16px;
 		}
 		.collection-settings-cont{
 			height: 0px;
@@ -703,6 +771,7 @@ a {
 				margin: 0 0 10px 0;
 				color: #7b8c90;
 				display: block;
+				font-size: 14px;
 			}
 		}
 	}
@@ -716,7 +785,7 @@ a {
 		text-align: left;
 		text-transform: capitalize;
 		color: #deefef;
-		padding: 12px;
+		padding: 10px;
 		border-radius: 8px;
 
 		.icon {
@@ -946,14 +1015,6 @@ a {
 			display: flex;
 			position: relative;
 
-			&.overview .active-bg::after {
-				content: 'overview';
-			}
-
-			&.libraries .active-bg::after {
-				content: 'libraries';
-			}
-
 			aside {
 				width: 250px;
 				padding: 12px;
@@ -967,6 +1028,10 @@ a {
 				font-size: large;
 				ol{
 					list-style: none;
+
+					li{
+						margin: 12px 0;
+					}
 				}
 			}
 
@@ -974,6 +1039,7 @@ a {
 				pointer-events: none;
 
 				&::after {
+					content: attr(data-content);
 					position: absolute;
 					top: 40%;
 					left: 40%;

@@ -77,6 +77,9 @@ function openDB() {
 				store.createIndex("userScore", "userScore");
 				store.createIndex("criticScore", "criticScore");
 				store.createIndex("communityScore", "communityScore");
+				store.createIndex("soundtracks", "soundtracks");
+				store.createIndex("software", "software");
+				store.createIndex("tools", "tools");
 			}
 			// Create sourcesStore with relevant keyPath
 			if (!db.objectStoreNames.contains(SOURCES_STORE)) {

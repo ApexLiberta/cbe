@@ -32,13 +32,39 @@ export const asideTemplate = () => {
     asideHeader.innerHTML = `
         <button id="library-home-btn" class="page-mgr-btn" data-page='home'>Home</button>
         <button class="page-mgr-btn library-collection-icon-btn"  data-page='collections'>
-            <img src="./../assets/collections.png" alt="" srcset="">
+            <i class="fa-solid fa-object-group"></i>
         </button>
     `;
+
+    const searchTag = document.createElement("input");
+    searchTag.type = "text";
+    searchTag.classList.add("search-input");
+    searchTag.placeholder = "Search by Name";
+
+    const searchIconBtn = document.createElement("button")
+    searchIconBtn.classList.add("search-icon");
+    searchIconBtn.innerHTML = `<i class="fas fa-search"></i>`;
+
+    const cancleSearchBtn = document.createElement("button");
+    cancleSearchBtn.classList.add("cancel-search-btn");
+    cancleSearchBtn.innerHTML = `<i class="fas fa-times"></i>`;
+
+    const searchSettingsBtn = document.createElement("button");
+    searchSettingsBtn.classList.add("search-settings-btn");
+    searchSettingsBtn.innerHTML = `<i class="fa-solid fa-wand-sparkles"></i>`;
+    //searchSettingsBtn.innerHTML = `<i class="fas fa-cog"></i>`;
+
+    const searchbar = document.createElement("div");
+    searchbar.classList.add("search-bar");
+    searchbar.append(searchIconBtn, searchTag, cancleSearchBtn);
+
+    const searchCont = document.createElement("div");
+    searchCont.classList.add("search-cont", "flex-row");
+    searchCont.append(searchbar, searchSettingsBtn);
 
     const collectionCont = document.createElement("div");
     collectionCont.classList.add("collections-cont");
 
-    aside.append(asideHeader, collectionCont);
+    aside.append(asideHeader, searchCont, collectionCont);
     return aside
 }

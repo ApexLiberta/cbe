@@ -95,8 +95,10 @@ function initializeEvents() {
 
 
 function libraryMgr(page, data) {
+	let newUrl;
 	switch (page) {
 		case PAGE_HOME:
+			newUrl = "/";
 			homeButton.classList.toggle("active");
 			libraryCollections.innerHTML = `
 
@@ -143,7 +145,7 @@ function libraryMgr(page, data) {
 					</div>
 					-->
 				</div>`;
-			//libraryCollections.prepend(getShelfHtml({ name: "col1", count: 3 }));
+			//libraryCollections.prepend(getShelfHtml({ name: "coll", count: 3 }));
 			libraryCollections.prepend(getHomePageHtml());
 
 			document
@@ -245,6 +247,7 @@ function libraryMgr(page, data) {
 			console.info(`${PAGE_LIBRARY} page loaded`);
 			break;
 		case PAGE_COLLECTIONS:
+			newUrl = "/collections";
 			if (!libraryCollections) {
 				console.error("Element with class 'library-collections' not found.");
 				return; // Exit the function if the element doesn't exist
@@ -352,25 +355,47 @@ function libraryMgr(page, data) {
 			console.info(`${PAGE_COLLECTIONS} page loaded`);
 			break;
 		case PAGE_COLLECTION:
+			if (data && data.name) {
+				newUrl = `/collection/${data.name}`;
+			} else {
+				console.warn("collectionId is missing for PAGE_COLLECTION");
+				return; // Or handle error as needed
+			}
 			const collectionFiltersArr = [
 				{
 					name: "sort by",
 					options: [
-						"Best Match",
-						"Latest Upload",
-						"Oldest Upload",
-						"Title Ascending",
-						"Title Descending",
-						"Highest Rating",
-						"Lowest Rating",
-						"Most Follows",
-						"Fewest Follows",
-						"Recently Added",
-						"Oldest Added",
-						"Year Ascending",
-						"Year Descending",
+						{
+							label: "Best Match",
+							order: true,
+						},
+						{
+							label: "Latest Upload",
+							order: true,
+						},
+						{
+							label: "Title",
+							order: true,
+						},
+						{
+							label: "Rating",
+							order: true,
+						},
+						{
+							label: "Follows",
+							order: true,
+						},
+						{
+							label: "Recently Added",
+							order: true,
+						},
+						{
+							label: "Year",
+							order: true,
+						},
 					],
 					default: "none",
+					order: true,
 				},
 				{
 					name: "filter tags",
@@ -379,7 +404,20 @@ function libraryMgr(page, data) {
 				},
 				{
 					name: "content rating",
-					options: ["safe", "suggestive", "erotica", "pornographic"],
+					options: [
+						{
+							label: "safe",
+						},
+						{
+							label: "suggestive",
+						},
+						{
+							label: "erotica",
+						},
+						{
+							label: "pornographic",
+						}
+					],
 					default: "any",
 				},
 				{
@@ -407,25 +445,44 @@ function libraryMgr(page, data) {
 					icon: '<i class="fa-solid fa-trash"></i>',
 				},
 			];
+			const collectionSettingsArr = [
+
+			]
 			libraryCollections.innerHTML = ``;
 			libraryCollections.classList.add("collection-page");
 
 			const pageHeader = document.createElement("div");
 			pageHeader.classList.add("collection-header", "flex-row");
 
+			const collLabelCont = document.createElement("div");
+			collLabelCont.classList.add("coll-label-cont", "flex-row");
 			const nameTag = document.createElement("h2");
-			nameTag.textContent = data.name;
+			const labelTag = document.createElement("label");
+			labelTag.textContent = data.name;
+			labelTag.htmlFor = "collection-rename-btn";
+			nameTag.appendChild(labelTag);
 
 			const renameBtn = document.createElement("button");
+			renameBtn.id = "collection-rename-btn";
 			renameBtn.classList.add("rename-btn");
 			renameBtn.innerHTML = `<i class="fa-solid fa-pen"></i>`;
+			renameBtn.innerHTML = `<i class="fa-regular fa-pen-to-square"></i>`;
+			renameBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i>`;
+
+			renameBtn.addEventListener("click", (event) => {
+				console.log(event.target);
+			})
+
+			const lengthSpan = document.createElement("span");
+			lengthSpan.textContent = "( 0 )";
+
+			//data.games ? lengthSpan.textContent = `( ${data.games.length} )` : lengthSpan.textContent = `( 0 )`;
+			data.games ? lengthSpan.textContent = `( ${data.games.length} )` : lengthSpan.textContent = ``;
+			collLabelCont.append(nameTag, renameBtn, lengthSpan);
 
 			const filterBtn = document.createElement("button");
 			filterBtn.classList.add("filter-btn");
 			filterBtn.innerHTML = `<i class="fa-solid fa-filter"></i>`;
-
-			const lengthSpan = document.createElement("span");
-			//lengthSpan.textContent = data.gameIds.length;
 
 			const settingBtn = document.createElement("button");
 			settingBtn.innerHTML = `
@@ -434,6 +491,7 @@ function libraryMgr(page, data) {
 				<span class="icon"><i class="fa-solid fa-gear"></i></span>
 			`;
 			settingBtn.classList.add("collection-settings", "active");
+
 			const settingCont = document.createElement("div");
 			settingCont.classList.add("collection-settings-cont", "active");
 
@@ -447,14 +505,18 @@ function libraryMgr(page, data) {
 				btnsDiv.classList.add("btn-cont", "flex-row");
 				const btn = document.createElement("button");
 				btn.classList.add("dropdown-btn");
+				btn.innerHTML = `<span class="txt">${filterObj.default}</span>`;
+
 				const orderBtn = document.createElement("button");
 				orderBtn.classList.add("order-btn");
 				orderBtn.innerHTML = `
 					<i class="fa-solid fa-sort"></i>
 				`;
-				btnsDiv.append(btn, orderBtn)
-				//btn.dataset.filtergroup = filterObj.name;
 
+				filterObj.order ? btnsDiv.append(btn, orderBtn) : btnsDiv.append(btn);
+
+				//btn.dataset.filtergroup = filterObj.name;
+				/*
 				btn.innerHTML = `
 					<span class="txt">
 						${filterObj.default}
@@ -463,6 +525,8 @@ function libraryMgr(page, data) {
 						<i class="fa-solid fa-up-down"></i>
 					</span>
 				`;
+				*/
+
 				const optionDiv = document.createElement("div");
 				optionDiv.classList.add("dropdown-ctx", "hidden");
 				//optionDiv.classList.add(`filter-options-${filterObj.name.toLowerCase()}`);
@@ -471,19 +535,21 @@ function libraryMgr(page, data) {
 				if (filterObj.options.length > 0) {
 					filterObj.options.forEach((filter) => {
 						const filterBtn = document.createElement("button");
-						filterBtn.textContent = filter;
+						filterBtn.textContent = filter.label;
 						filterBtn.classList.add("dropdown-option");
 						optionDiv.appendChild(filterBtn);
 						filterBtn.addEventListener("click", (event) => {
-							console.log(event.target);
+							btn.dataset.active = filter.label;
+							btn.textContent = filter.label;
+							btn.classList.toggle("active");
+							optionDiv.classList.toggle("hidden");
 						});
 					});
 				}
 
 				btn.addEventListener("click", (event) => {
 					const check = event.target.classList.contains("active");
-					const allDropdowns =
-						settingCont.querySelectorAll(".btn-ctx-dropdown");
+					const allDropdowns = settingCont.querySelectorAll(".btn-ctx-dropdown");
 					allDropdowns.forEach((dropdown) => {
 						dropdown.querySelector(".dropdown-btn").classList.remove("active");
 						dropdown.querySelector(".dropdown-ctx").classList.add("hidden");
@@ -514,7 +580,7 @@ function libraryMgr(page, data) {
 				//});
 			`;
 
-			pageHeader.append(nameTag, renameBtn, lengthSpan, filterBtn, settingBtn);
+			pageHeader.append(collLabelCont, filterBtn, settingBtn);
 			libraryCollections.prepend(pageHeader, settingCont, itemsDiv);
 			console.info(`${data.name.toUpperCase() + " " + PAGE_COLLECTION} page loaded`);
 			break;
@@ -523,6 +589,15 @@ function libraryMgr(page, data) {
 			break;
 		default:
 			break;
+	}
+	if (newUrl) {
+		// Change the URL without reloading the page using history.pushState
+		/////window.history.pushState({ page: page, data: data }, "", "/index.html" + newUrl);
+
+		// If you need to actually navigate to the new URL (full page reload) instead, use:
+		// window.location.href = newUrl;
+
+		/////console.log("URL changed to:", newUrl, "for page:", page);
 	}
 }
 
@@ -621,6 +696,8 @@ settingsButton.addEventListener("click", () => {
 	const dialogSidebarLabels = dialog.querySelector(".settings-group");
 	const dialogContent = dialog.querySelector(".settings-content");
 
+	const activeBg = dialog.querySelector(".active-bg");
+
 	browser.runtime
 		.sendMessage({ action: "getSettings" })
 		.then((response) => {
@@ -634,49 +711,54 @@ settingsButton.addEventListener("click", () => {
 
 					btnTag.addEventListener("click", (event) => {
 						// More efficient active class management
-						dialogSidebarLabels.querySelectorAll("button").forEach((btn) => {
-							btn.classList.toggle("active", btn === btnTag); // Toggle active
-						});
-
-						dialogContent.innerHTML = "";
-						const list = document.createElement("ol");
-						Object.entries(value.config).forEach(([configKey, configValue]) => {
-							const listItem = document.createElement("li");
-							listItem.textContent = configKey;
-							listItem.title = configValue.description;
-							list.appendChild(listItem);
-						});
-						dialogContent.appendChild(list);
-
-						dialog.classList.toggle(key);
-
-						if (event.target.textContent == 'overview'){
-							const btnsCont = document.createElement("div")
-							btnsCont.classList.add("flex-row", "equal")
-							const btnArray = [
-								{
-									title: "Daily Kickstart",
-									desc: "Start the day by reviewing yourgoals and setting your intentions",
-								},
-								{
-									title: "Daily Review",
-									desc: "End the day by reviewing your actions and stay accountable",
-								},
-								{
-									title: "History",
-									desc: "Review your journey",
-								},
-							]
-							btnArray.forEach((element) => {
-								const btnTag = document.createElement("button");
-								const btnTitle = document.createElement("h4");
-								btnTitle.textContent = element.title;
-								const btnDec = document.createElement("p");
-								btnDec.textContent = element.desc;
-								btnTag.append(btnTitle, btnDec);
-								btnsCont.appendChild(btnTag);
+						if (!event.target.classList.contains("active")) {
+							dialogSidebarLabels.querySelectorAll("button").forEach((btn) => {
+								btn.classList.toggle("active", btn === btnTag); // Toggle active
 							});
-							dialogContent.prepend(btnsCont);
+
+							dialogContent.innerHTML = "";
+							const list = document.createElement("ol");
+							Object.entries(value.config).forEach(
+								([configKey, configValue]) => {
+									const listItem = document.createElement("li");
+									listItem.textContent = configKey;
+									listItem.title = configValue.description;
+									list.appendChild(listItem);
+								}
+							);
+							dialogContent.appendChild(list);
+
+							activeBg.dataset.active = key;
+							activeBg.setAttribute("data-content", key);
+
+							if (event.target.textContent == "overview") {
+								const btnsCont = document.createElement("div");
+								btnsCont.classList.add("flex-row", "equal");
+								const btnArray = [
+									{
+										title: "Daily Kickstart",
+										desc: "Start the day by reviewing yourgoals and setting your intentions",
+									},
+									{
+										title: "Daily Review",
+										desc: "End the day by reviewing your actions and stay accountable",
+									},
+									{
+										title: "History",
+										desc: "Review your journey",
+									},
+								];
+								btnArray.forEach((element) => {
+									const btnTag = document.createElement("button");
+									const btnTitle = document.createElement("h4");
+									btnTitle.textContent = element.title;
+									const btnDec = document.createElement("p");
+									btnDec.textContent = element.desc;
+									btnTag.append(btnTitle, btnDec);
+									btnsCont.appendChild(btnTag);
+								});
+								dialogContent.prepend(btnsCont);
+							}
 						}
 					});
 
@@ -710,7 +792,7 @@ settingsButton.addEventListener("click", () => {
 									groupList.appendChild(groupListItem);
 								}
 							);
-							asideListItem.appendChild(groupList);
+							//asideListItem.appendChild(groupList);
 							break;
 						// Add other cases as needed
 					}

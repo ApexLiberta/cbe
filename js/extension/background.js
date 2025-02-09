@@ -21,12 +21,16 @@ const settings = {
 				description: "Show the options page in the extension popup.",
 				type: "link",
 				href: "/pages/extension/options.html",
-			}
+			},
 		},
 		type: "list",
 	},
 	libraries: {
 		config: {
+			"add library": {
+				description: "Add a new library to organize games.",
+				type: "list",
+			},
 			sources: {
 				description: "List of sources to check for game information.",
 				list: [
@@ -63,7 +67,19 @@ const settings = {
 		},
 		type: "group",
 	},
+	Appearance: {
+		config: {},
+		description: "Theme, List mode, Language",
+		type: "group",
+	},
+	About: {
+		config: {},
+		description: "Version 7.7.10",
+		type: "group",
+	},
 };
+console.clear();
+console.log(settings)
 browser.runtime.onInstalled.addListener(() => {
 	browser.storage.local
 		.get("settings")
