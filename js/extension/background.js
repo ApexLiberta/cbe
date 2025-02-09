@@ -10,72 +10,159 @@ import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 })();
 const settings = {
 	overview: {
+		type: "group",
+		label: "Overview", // Added label for better UI context
+		description: "General settings for the application.", // Added general description for section
 		config: {
 			addToPlayniteOnGameAdd: {
-				enabled: true,
+				type: "toggle",
+				label: "Add to Playnite on Game Add",
 				description:
 					"Automatically adds new games to Playnite when they are detected.",
-				type: "toggle",
+				default: true, // Added default value for clarity and potential form handling
 			},
 			optionsPage: {
-				description: "Show the options page in the extension popup.",
 				type: "link",
+				label: "Options Page",
+				description: "Show the options page in the extension popup.",
 				href: "/pages/extension/options.html",
 			},
 		},
-		type: "list",
 	},
 	libraries: {
+		type: "group",
+		label: "Libraries",
+		description: "Manage your game libraries and sources.",
 		config: {
-			"add library": {
+			addLibrary: {
+				type: "button",
+				label: "Add Library",
 				description: "Add a new library to organize games.",
-				type: "list",
+				action: "addLibrary",
 			},
 			sources: {
+				type: "list",
+				label: "Sources",
 				description: "List of sources to check for game information.",
+				listItemType: "group", // Added listItemType to describe the type of items in the list
+				addable: true,
+				removable: true,
 				list: [
 					{
-						name: "steam",
-						gistId: "your_gist_id",
-						version: 0.1,
-						enabled: true,
-						matches: "*://*.steampowered.com/app/*",
+						type: "group",
+						label: "Steam",
+						config: {
+							name: { type: "static", label: "Name", value: "steam" },
+							gistId: {
+								type: "text",
+								label: "Gist ID",
+								value: "your_gist_id",
+								placeholder: "Enter your Gist ID",
+								description: "Your personal Gist ID for Steam integration.",
+							},
+							version: { type: "number", label: "Version", value: 0.1 },
+							enabled: { type: "toggle", label: "Enabled", default: true },
+							matches: {
+								type: "static",
+								label: "Matches",
+								value: "*://*.steampowered.com/app/*",
+							},
+						},
 					},
 				],
-				type: "list",
 			},
 			filters: {
-				description: "List of filters to apply to game information.",
-				list: [],
 				type: "list",
+				label: "Filters",
+				description: "List of filters to apply to game information.",
+				listItemType: "group",
+				addable: true,
+				removable: true,
+				list: [],
 			},
 			tags: {
-				description: "List of tags to apply to games.",
-				list: [],
 				type: "list",
+				label: "Tags",
+				description: "List of tags to apply to games.",
+				listItemType: "text", // Assuming tags are simple text inputs
+				addable: true,
+				removable: true,
+				list: [],
 			},
 			features: {
-				description: "List of features to apply to games.",
-				list: [],
 				type: "list",
+				label: "Features",
+				description: "List of features to apply to games.",
+				listItemType: "text", // Assuming features are simple text inputs
+				addable: true,
+				removable: true,
+				list: [],
 			},
 			collections: {
-				description: "List of collections to organize games.",
-				list: [],
 				type: "list",
+				label: "Collections",
+				description: "List of collections to organize games.",
+				listItemType: "text", // Assuming collections are simple text inputs
+				addable: true,
+				removable: true,
+				list: [],
 			},
 		},
-		type: "group",
 	},
-	Appearance: {
-		config: {},
-		description: "Theme, List mode, Language",
+	appearance: {
 		type: "group",
+		label: "Appearance", // Added label for better UI context
+		description: "Customize the look and feel of the application.", // More descriptive
+		config: {
+			theme: {
+				type: "dropdown",
+				label: "Theme",
+				description: "Select the application theme.",
+				options: [
+					{ value: "light", label: "Light" },
+					{ value: "dark", label: "Dark" },
+					{ value: "system", label: "System Default" },
+				], // More structured options for dropdown
+				default: "system",
+			},
+			listMode: {
+				type: "dropdown",
+				label: "List Mode",
+				description: "Choose how games are displayed in lists.",
+				options: [
+					{ value: "grid", label: "Grid" },
+					{ value: "list", label: "List" },
+					{ value: "detailed", label: "Detailed List" },
+				],
+				default: "grid",
+			},
+			language: {
+				type: "dropdown",
+				label: "Language",
+				description: "Application language.",
+				options: [
+					{ value: "en", label: "English" },
+					{ value: "es", label: "Spanish" },
+					{ value: "fr", label: "French" },
+					// ... more languages
+				],
+				default: "en",
+			},
+		},
 	},
-	About: {
-		config: {},
-		description: "Version 7.7.10",
+	about: {
 		type: "group",
+		label: "About", // Added label for better UI context
+		description: "Information about this application.", // More descriptive
+		config: {
+			version: {
+				type: "static",
+				label: "Version",
+				value: "7.7.10",
+				description: "Current application version.",
+			},
+			// Could add more static info here like copyright, author, etc.
+		},
 	},
 };
 console.clear();

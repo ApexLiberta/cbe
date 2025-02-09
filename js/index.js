@@ -1,6 +1,6 @@
-import { getWhatsNew, getShelfHtml, getShelfContainerHtml, getAddShelfHtml } from "./modules/shelfsHtml.js";
+import { getWhatsNew, getShelfHtml, getShelfContainerHtml, getAddShelfHtml } from "./components/shelfsHtml.js";
 import { testGames } from "./tmp/game_details.js";
-import { collFiltersHtml, collSettingsHtml } from "./modules/collection.js";
+import { collFiltersHtml, collSettingsHtml } from "./components/collection.js";
 import {
 	dialogManager,
 	createCollectionDialog,

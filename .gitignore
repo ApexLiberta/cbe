@@ -1,4 +1,5 @@
 .vscode
 .tmp
+@tmp
 assets/fonts/
 assets/fontawesome/
