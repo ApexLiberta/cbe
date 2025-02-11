@@ -5,7 +5,9 @@ import {
 	dialogManager,
 	createCollectionDialog,
 	connectSettingsDialog,
+	confirmationDialog,
 } from "./components/dialog.js";
+import { createSectionElement } from "./components/settings.js";
 import { asideTemplate } from "./components/templates.js";
 
 
@@ -56,23 +58,56 @@ function isBrowserEnvironment() {
 		return false;
 	}
 }
+const isBrowser = isBrowserEnvironment();
+
+function extensionPageManger(){
+
+}
+
+/*
+const getSettingsJson = browser.runtime.sendMessage({ action: "getSettings" })
+getSettingsJson.then((response) => {
+	console.log(response);
+});
+
+const getSettingsJson = async () => {
+	// Define as an async function
+	try {
+		const response = await browser.runtime.sendMessage({
+			action: "getSettings",
+		}); // Await the Promise
+		if (response) {
+			console.log("Received settings:", response);
+			return response; // Return the response (Promise resolves with this value)
+		}
+		// You might want to handle cases where response is null/undefined explicitly
+		// For example, throw an error or return a default value
+		return null; // Or throw new Error("No settings received");
+	} catch (error) {
+		console.error("Error getting settings:", error);
+		// Handle the error appropriately, maybe return a default value or re-throw
+		return null; // Or throw error;
+	}
+};
+
+getSettingsJson().then((response) => {
+	// Call the async function and use .then
+	console.log(response);
+});
+
+const getCollections = browser.runtime.sendMessage({
+	action: "getAllCollections",
+});
+getCollections.then((response) => {
+	console.log(response);
+});
+*/
+
 const libraryCollections = document.querySelector(".library-collections");
 const homeButton = document.querySelector("#library-home-btn");
 
 const collectionButton = document.querySelector(".library-collection-icon-btn");
 
-/* REVIEW
-document.querySelectorAll(".event").forEach((eventElement) => {
-	if (eventElement.classList.contains("clickEvent")) {
-		eventElement.addEventListener("click", function (event) {
-			eventElement.classList.toggle("active");
-			document
-				.querySelector("#" + eventElement.dataset.target)
-				.classList.toggle("active");
-		});
-	}
-});
-*/
 function initializeEvents() {
 	document.querySelectorAll(".event").forEach((eventElement) => {
 		if (eventElement.classList.contains("clickEvent")) {
@@ -316,7 +351,11 @@ function libraryMgr(page, data) {
 								if (response && response.success) {
 									dialogManagerVar.remove();
 									loadAsideCollections();
-									console.log("Collection operation completed successfully.");
+									libraryMgr(PAGE_COLLECTIONS);
+									console.log(
+										"Collection operation completed successfully.",
+										response
+									);
 								} else {
 									console.error(
 										"Collection operation failed:",
@@ -361,7 +400,23 @@ function libraryMgr(page, data) {
 				console.warn("collectionId is missing for PAGE_COLLECTION");
 				return; // Or handle error as needed
 			}
-			const collectionFiltersArr = [
+			const collectionSettings = [
+				{
+					name: "private",
+					options: [],
+					default: "private",
+					icon: '<i class="fa-solid fa-trash"></i>',
+					type: "button"
+				},
+				{
+					name: "delete",
+					options: [],
+					default: "delete",
+					icon: '<i class="fa-solid fa-trash"></i>',
+					type: "button"
+				},
+			];
+			const collectionFiltersArrReview = [
 				{
 					name: "sort by",
 					options: [
@@ -495,7 +550,7 @@ function libraryMgr(page, data) {
 			const settingCont = document.createElement("div");
 			settingCont.classList.add("collection-settings-cont", "active");
 
-			collectionFiltersArr.forEach((filterObj) => {
+			collectionSettings.forEach((filterObj) => {
 				const div = document.createElement("div");
 				div.classList.add("btn-ctx-dropdown");
 				const label = document.createElement("label");
@@ -530,7 +585,7 @@ function libraryMgr(page, data) {
 				const optionDiv = document.createElement("div");
 				optionDiv.classList.add("dropdown-ctx", "hidden");
 				//optionDiv.classList.add(`filter-options-${filterObj.name.toLowerCase()}`);
-				console.log(filterObj, filterObj.name.toLowerCase());
+				console.log(filterObj.name.toLowerCase(), filterObj);
 
 				if (filterObj.options.length > 0) {
 					filterObj.options.forEach((filter) => {
@@ -550,17 +605,70 @@ function libraryMgr(page, data) {
 				btn.addEventListener("click", (event) => {
 					const check = event.target.classList.contains("active");
 					const allDropdowns = settingCont.querySelectorAll(".btn-ctx-dropdown");
-					allDropdowns.forEach((dropdown) => {
-						dropdown.querySelector(".dropdown-btn").classList.remove("active");
-						dropdown.querySelector(".dropdown-ctx").classList.add("hidden");
-					});
-					if (!check) {
-						btn.classList.toggle("active");
-						optionDiv.classList.toggle("hidden");
+
+					if(filterObj.type !== "button"){
+						allDropdowns.forEach((dropdown) => {
+							dropdown.querySelector(".dropdown-btn").classList.remove("active");
+							dropdown.querySelector(".dropdown-ctx").classList.add("hidden");
+						});
+						if (!check) {
+							btn.classList.toggle("active");
+							optionDiv.classList.toggle("hidden");
+						}
+					}
+
+					switch (filterObj.name) {
+						case "delete":
+							const dialogManagerVar = dialogManager(
+								confirmationDialog({
+									header: "Confirmation Dialog",
+									headerDesc: "Are you sure you want to delete this collection?",
+								})
+							);
+							dialogManagerVar.classList.add("delete-collection-dialog");
+							const dialogVar = dialogManagerVar.querySelector(".dialog");
+
+							const confirmationInput = dialogVar.querySelector(
+								"#confirmationCheckbox"
+							);
+							confirmationInput.addEventListener("change", () => {
+								confirmButton.disabled = !confirmationInput.checked; // Disable if input is empty or checkbox is checked and input is empty
+							});
+
+							const confirmButton = dialogVar.querySelector("#confirmButton");
+							confirmButton.addEventListener("click", () => {
+								if (confirmationInput.checked) {
+									browser.runtime.sendMessage(
+										{ action: "deleteCollection", name: data.name },
+										(response) => {
+											if (response.error) {
+												console.error("Error:", response.error);
+											} else {
+												dialogManagerVar.remove();
+												btn.classList.toggle("active");
+												libraryMgr(PAGE_COLLECTIONS);
+												loadAsideCollections();
+											}
+										}
+									);
+									console.log("Extra confirmation checked! Input value:");
+								} else {
+									console.log("Regular confirmation! Input value:");
+								}
+							});
+							const cancelButton = dialogVar.querySelector("#cancelButton");
+							cancelButton.addEventListener("click", () => {
+								dialogManagerVar.remove();
+								btn.classList.toggle("active");
+							});
+							break;
+
+						default:
+							break;
 					}
 				});
 
-				div.append(label, btnsDiv, optionDiv);
+				filterObj.type !== "button" ? div.append(label, btnsDiv, optionDiv) : div.append(label, btnsDiv);
 				settingCont.appendChild(div);
 			});
 
@@ -601,31 +709,14 @@ function libraryMgr(page, data) {
 	}
 }
 
-/*
-const homeButton = document.getElementById("homeButton"); // Use getElementById for efficiency
-const collectionButton = document.getElementById("collectionButton");
-
-if (homeButton) {
-	homeButton.addEventListener("click", () => libraryMgr("home")); // Use an arrow function
-} else {
-	console.error("Home button not found!");
-}
-
-if (collectionButton) {
-	collectionButton.addEventListener("click", () => libraryMgr("collections")); // Use an arrow function
-} else {
-	console.error("Collection button not found!");
-}
-*/
-
 const aside = asideTemplate();
-aside.querySelectorAll(".page-mgr-btn").forEach((btn) => {
-	btn.addEventListener("click", () => {
-		libraryMgr(btn.dataset.page);
-	})
-})
 isBrowserEnvironment() ? loadAsideCollections(): false;
 function loadAsideCollections() {
+	aside.querySelectorAll(".page-mgr-btn").forEach((btn) => {
+		btn.addEventListener("click", () => {
+			libraryMgr(btn.dataset.page);
+		})
+	})
 	browser.runtime.sendMessage({ action: "getAllCollections" }, (response) => {
 		if (response.error) {
 			console.error("Error:", response.error);
@@ -685,9 +776,7 @@ function loadAsideCollections() {
 document.querySelector(".library-container").prepend(aside);
 
 
-
 const settingsButton = document.querySelector("#settings-trigger");
-
 settingsButton.addEventListener("click", () => {
 	const dialogMgr = dialogManager(connectSettingsDialog());
 	dialogMgr.classList.add("settings-dialog");
@@ -702,10 +791,12 @@ settingsButton.addEventListener("click", () => {
 		.sendMessage({ action: "getSettings" })
 		.then((response) => {
 			if (response) {
-				Object.entries(response).forEach(([key, value]) => {
+				logSettings(response)
+				for (const sectionKey in response) {
+					const section = response[sectionKey];
 					const asideListItem = document.createElement("li");
 					const btnTag = document.createElement("button");
-					btnTag.textContent = key;
+					btnTag.textContent = sectionKey;
 					btnTag.classList.add("aside-btn", "trigger");
 					asideListItem.appendChild(btnTag);
 
@@ -717,19 +808,11 @@ settingsButton.addEventListener("click", () => {
 							});
 
 							dialogContent.innerHTML = "";
-							const list = document.createElement("ol");
-							Object.entries(value.config).forEach(
-								([configKey, configValue]) => {
-									const listItem = document.createElement("li");
-									listItem.textContent = configKey;
-									listItem.title = configValue.description;
-									list.appendChild(listItem);
-								}
-							);
-							dialogContent.appendChild(list);
+							const sectionElement = createSectionElement(section, sectionKey);
+							dialogContent.appendChild(sectionElement);
 
-							activeBg.dataset.active = key;
-							activeBg.setAttribute("data-content", key);
+							activeBg.dataset.active = sectionKey;
+							activeBg.setAttribute("data-content", sectionKey);
 
 							if (event.target.textContent == "overview") {
 								const btnsCont = document.createElement("div");
@@ -763,48 +846,17 @@ settingsButton.addEventListener("click", () => {
 					});
 
 					dialogSidebarLabels.appendChild(asideListItem);
-
-					switch (value.type) {
-						case "list":
-							const list = document.createElement("ol");
-							list.classList.add("setting");
-							console.log(value.config);
-							Object.entries(value.config).forEach(
-								([configKey, configValue]) => {
-									const listItem = document.createElement("li");
-									listItem.textContent = configKey;
-									listItem.title = configValue.description;
-									list.appendChild(listItem);
-								}
-							);
-							dialogContent.appendChild(list);
-							break;
-						case "group":
-							const groupList = document.createElement("ol");
-							groupList.classList.add("sub-group");
-							Object.entries(value.config).forEach(
-								([groupKey, groupValue]) => {
-									const groupListItem = document.createElement("li");
-									const subBtnTag = document.createElement("button");
-									subBtnTag.textContent = groupKey;
-									subBtnTag.title = groupValue.description;
-									groupListItem.appendChild(subBtnTag);
-									groupList.appendChild(groupListItem);
-								}
-							);
-							//asideListItem.appendChild(groupList);
-							break;
-						// Add other cases as needed
-					}
-
-					console.info(key, value, value.type);
-				});
+				}
 			}
 		})
 		.catch((error) => {
 			console.error("Error getting settings:", error); // More descriptive error message
 		});
 });
+
+function logSettings(data){
+	console.log("logSettings", data);
+}
 // TODO Delete
 //  Call the function to load the library when the page loads
 //document.addEventListener("DOMContentLoaded", libraryMgr);

@@ -11,8 +11,8 @@ import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 const settings = {
 	overview: {
 		type: "group",
-		label: "Overview", // Added label for better UI context
-		description: "General settings for the application.", // Added general description for section
+		label: "overview",
+		description: "General settings for the application.",
 		config: {
 			addToPlayniteOnGameAdd: {
 				type: "toggle",
@@ -26,6 +26,12 @@ const settings = {
 				label: "Options Page",
 				description: "Show the options page in the extension popup.",
 				href: "/pages/extension/options.html",
+			},
+			tmpPage: {
+				type: "link",
+				label: "tmp Page",
+				description: "Show the options page in the extension popup.",
+				href: "/@tmp/main.html",
 			},
 		},
 	},
@@ -348,6 +354,16 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			.catch((error) => {
 				console.error("Error in getAllCollections:", error);
 			});
+	}
+	if (request.action === "deleteCollection") {
+		deleteCollection(request.name)
+			.then(() => {
+				sendResponse({ success: true });
+			})
+			.catch((error) => {
+				sendResponse({ success: false, error: error.message });
+			});
+		console.log("deleteCollection");
 	}
 
 	if (request.action === "print") {

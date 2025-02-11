@@ -46,3 +46,21 @@ export function collSettingsHtml() {
 	const contDiv = document.createElement("div");
 	return contDiv;
 }
+
+
+export function createAsideCollectionElement(collection) {
+    const div = document.createElement("div");
+    return div;
+}
+export function createAsideGamesCont(games) {
+    const div = document.createElement("div");
+    games.forEach(game => {
+        const gameDiv = createAsideGameElemnt(game);
+        div.appendChild(gameDiv);
+    })
+    return div;
+}
+export function createAsideGameElemnt(game) {
+    const div = document.createElement("div");
+    return div;
+}

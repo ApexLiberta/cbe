@@ -99,3 +99,46 @@ export const connectSettingsDialog = () => {
     title.classList.add("active-bg");
     return [sidebar, content, title];
 };
+
+export const confirmationDialog = (dataObj) => {
+    console.log(dataObj);
+    if (!dataObj) {
+        return
+    }
+	const dialogContainer = document.createElement("div");
+	dialogContainer.id = "confirmationDialog";
+
+	// Dialog Header
+	const dialogHeader = document.createElement("div");
+	const dialogTitle = document.createElement("h3");
+	dialogTitle.textContent = dataObj.header;
+	const dialogMessage = document.createElement("p");
+	dialogMessage.textContent = dataObj.headerDesc; // Example message
+	dialogHeader.append(dialogTitle, dialogMessage);
+
+	// Input and Label
+	const inputContainer = document.createElement("div");
+
+	const confirmationInput = document.createElement("input");
+	confirmationInput.type = "checkbox";
+	confirmationInput.id = "confirmationCheckbox";
+	const confirmationLabel = document.createElement("label");
+	confirmationLabel.htmlFor = confirmationInput.id;
+	confirmationLabel.textContent = "Extra Confirmation";
+	inputContainer.append(confirmationInput, confirmationLabel);
+
+	// Confirmation Buttons Container
+	const buttonContainer = document.createElement("div");
+    buttonContainer.classList.add("confirmation-btns");
+	const confirmButton = document.createElement("button");
+	confirmButton.textContent = "Confirm";
+	confirmButton.id = "confirmButton";
+	confirmButton.disabled = !confirmationInput.checked; // Initially disabled
+
+	const cancelButton = document.createElement("button");
+	cancelButton.textContent = "Cancel";
+	cancelButton.id = "cancelButton";
+
+	buttonContainer.append(inputContainer, confirmButton, cancelButton);
+	return [dialogHeader, buttonContainer];
+};

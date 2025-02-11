@@ -420,6 +420,11 @@ a {
 		display: flex;
 		background-color: rgb(43, 42, 51);
 		position: relative;
+		&:hover {
+			.filters-card {
+				display: block;
+			}
+		}
 
 		input {
 			width: 100%;
@@ -471,12 +476,6 @@ a {
 
 			&.floting {
 				z-index: 999;
-			}
-		}
-
-		&:hover {
-			.filters-card {
-				display: block;
 			}
 		}
 	}
@@ -849,6 +848,15 @@ a {
 		transition: .1s all ease-in-out;
 		text-align: center;
 
+		&.create-collection-btn{
+			background-color: transparent;
+			border: 1px solid #cccccc42;
+			&:hover{
+				border: 1px solid #ccc;
+
+			}
+		}
+
 		&:hover {
 			transform: scale(1.05);
 			span{
@@ -934,7 +942,7 @@ a {
 		.equal {
 			padding: 10px 8px;
 			gap: 6px;
-			margin-top: 6px;
+			margin: 6px 0 12px 0;
 			background-color: #3b3f45;
 			border-radius: 2px;
 
@@ -1018,14 +1026,15 @@ a {
 			aside {
 				width: 250px;
 				padding: 12px;
-				background-color: #25282e;
+				background-color: #2a2d34;
 			}
 
 			.settings-content {
 				width: 100%;
 				padding: 12px;
-				background-color: #333840;
+				background-color: #171d25;
 				font-size: large;
+				overflow-y: auto;
 				ol{
 					list-style: none;
 
@@ -1061,7 +1070,6 @@ a {
 			list-style: none;
 
 			li {
-				cursor: pointer;
 				margin: 6px 0;
 				button{
 					&.active {
@@ -1080,6 +1088,166 @@ a {
 				margin: 2px 0;
 				background-color: transparent;
 			}
+		}
+
+		.settings-section {
+			margin-bottom: 20px;
+		}
+		.settings-section h2 {
+			margin-top: 0;
+			margin-bottom: 8px;
+		}
+
+		.section-description {
+			color: #777;
+			margin-bottom: 15px;
+		}
+
+		.setting-item {
+			margin-bottom: 10px;
+			display: flex;
+			justify-content: space-between;
+		}
+
+		.setting-label {
+			display: block;
+			font-weight: bold;
+			text-transform: capitalize;
+			margin-bottom: 4px;
+		}
+
+		.setting-description {
+			color: #555;
+			font-size: 0.9em;
+			margin-bottom: 5px;
+		}
+		.setting-dropdown,
+		.setting-text,
+		.setting-number {
+			padding: 8px;
+			border-radius: 4px;
+			border: 1px solid #ccc;
+		}
+
+		.setting-button,
+		.setting-link,
+		.setting-static {
+			padding: 8px 12px;
+			border-radius: 4px;
+			border: 1px solid #ccc;
+			cursor: pointer;
+			text-decoration: none;
+			color: black;
+			display: inline-block;
+		}
+
+		.setting-link {
+			background-color: transparent;
+			border: none;
+			color: blue;
+			text-decoration: underline;
+			cursor: pointer;
+
+		}
+
+		.setting-static {
+			background-color: transparent;
+			border: none;
+			padding: 0;
+		}
+
+
+		.setting-list-container {
+			border-radius: 5px;
+			padding: 10px;
+		}
+
+		.setting-list-items {
+			margin-bottom: 10px;
+		}
+
+		.setting-list-item {
+			border-bottom: 1px dashed #eee;
+			padding: 10px 0;
+			margin-bottom: 10px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.setting-list-item:last-child {
+			border-bottom: none;
+			margin-bottom: 0;
+			padding-bottom: 0;
+		}
+
+		.setting-list-item-text {
+			flex-grow: 1;
+			margin-right: 10px;
+			padding: 6px;
+			border: 1px solid #ccc;
+			border-radius: 3px;
+		}
+
+		.setting-list-add-button,
+		.setting-list-item-remove-button {
+			padding: 6px 10px;
+			border-radius: 4px;
+			border: 1px solid #ccc;
+			cursor: pointer;
+			font-size: 0.9em;
+		}
+
+		.setting-list-item-remove-button {
+			background-color: rgba(194, 9, 9, 0.375);
+			border-color: #faa;
+		}
+	}
+	&.delete-collection-dialog{
+		.dialog{
+			width: 400px;
+			padding: 12px;
+			border-radius: 4px;
+			background-color: #25282e;
+		}
+		h3{
+			margin: 0 0 4px 0;
+		}
+		.confirmation-btns{
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin: 12px 0 0 0;
+
+			input{
+				margin: 0 6px 0 0;
+			}
+			lable{
+				cursor: pointer;
+			}
+		}
+		#confirmButton{
+			font-size: 16px;
+			text-align: left;
+			text-transform: capitalize;
+			padding: 10px;
+			border-radius: 8px;
+			background-color: #295b2abe;
+			color: #deefef;
+			margin: 0 12px 0 0;
+			&:disabled{
+				background-color: #7d322d9d;
+			}
+		}
+		#cancelButton{
+			font-size: 16px;
+			text-align: left;
+			text-transform: capitalize;
+			padding: 10px;
+			border-radius: 8px;
+			padding: 10px 20px;
+			background-color: #7d322d9d;
+			color: #deefef;
 		}
 	}
 }
@@ -1178,4 +1346,46 @@ a {
 	&.active {
 		display: block;
 	}
+}
+
+
+.toggle-container {
+	display: inline-block;
+	position: relative;
+}
+
+.toggle-container input[type="checkbox"] {
+	display: none;
+}
+
+
+.toggle-switch {
+	position: relative;
+	display: inline-block;
+	width: 40px;
+	height: 20px;
+	background-color: #ccc;
+	border-radius: 20px;
+	transition: background-color 0.3s;
+	cursor: pointer;
+}
+
+.toggle-switch::before {
+	content: "";
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background-color: white;
+	top: 2px;
+	left: 2px;
+	transition: transform 0.3s;
+}
+
+.toggle-container input:checked+.toggle-switch {
+	background-color: #4CAF50;
+}
+
+.toggle-container input:checked+.toggle-switch::before {
+	transform: translateX(20px);
 }
