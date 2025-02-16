@@ -33,17 +33,115 @@ const objectStoreName = gamesStore;
 const sourcesStore = "sources"
 
 
-function initializeDatabase(db) {
-	const transaction = db.transaction(
-		[GAMES_STORE, SOURCES_STORE, COLLECTIONS_STORE, SHELFS_STORE],
-		"versionchange"
-	);
-	const gamesStore = transaction.objectStore(GAMES_STORE);
-	gamesStore.createIndex(NAME_INDEX, "name", { unique: true });
-	if (!db.objectStoreNames.contains(SOURCES_STORE)) {
-		db.createObjectStore(SOURCES_STORE, { keyPath: "id", autoIncrement: true });
+
+async function getAllIndexedDBs() {
+	try {
+		const dbs = await indexedDB.databases();
+		//console.log("IndexedDB Databases:", dbs);
+		return dbs;
+	} catch (error) {
+		console.error("Error getting IndexedDB databases:", error);
+		return [];
 	}
 }
+
+//getAllIndexedDBs().then((databaseNames) => {
+//	console.log("IndexedDB Databases:", databaseNames);
+//	if (databaseNames.length > 0) {
+//		// Do something with the database names, e.g.,
+//		databaseNames.forEach((dbName) => {
+//			console.log("Found DB:", dbName);
+//		});
+//		//if (dbs.some((db) => db.name === "mangas")) {
+//		//	indexedDB.deleteDatabase("mangas");
+//		//	console.warn("mangas database exists");
+//		//} else {
+//		//	console.info("mangas database does not exist");
+//		//}
+//		//console.log("IndexedDB Databases:", dbs);
+//	} else {
+//		console.log("No IndexedDB databases found.");
+//	}
+//});
+console.log("indexedDB")
+function indexedDBPromise(dbName, version, action) {
+	return new Promise((resolve, reject) => {
+
+		if (!dbName || !version || !action) {
+			const errorMessage =
+				"Database name, version, and object store name are required.";
+			console.error(errorMessage);
+			reject(errorMessage);
+			return;
+		}
+		console.log(
+			`Attempting to open database: ${dbName}, version: ${version}, objectStore: ${action.objectStoreName}`
+		);
+
+		const request = indexedDB.open(dbName, version ? version : 1);
+
+		request.onerror = (event) => {
+			console.error(`Error opening database ${dbName}:`, event.target.error);
+			reject(event.target.error); // Reject the promise on error
+		};
+		request.onupgradeneeded = (event) => {
+			const db = event.target.result;
+			db.createObjectStore(action.objectStoreName, { keyPath: "id", autoIncrement: true });
+		};
+		request.onsuccess = (event) => resolve(event.target.result);
+	});
+
+}
+//initializeDatabase("mangas", 1, null)
+function initializeDatabase(dbName, version, objectStoreName) {
+	//if (!dbName || !version || !objectStoreName) {
+	//	console.error("Database name, version, and object store name are required.");
+	//}else{
+	//	console.log(dbName, version, objectStoreName)
+	//}
+	const request = indexedDB.open(dbName, version ? version : 1);
+
+	request.onerror = (event) => {
+		console.error(`Error opening database ${dbName}:`, event.target.error);
+	};
+
+	request.onupgradeneeded = (event) => {
+		const db = event.target.result;
+		console.log("onupgradeneeded", db);
+
+		console.log(event)
+		console.log(event.target)
+		console.log(event.target.transaction)
+		return
+		//console.log(event.target.transaction.objectStoreNames)
+
+		const objectStore = event.target.transaction.objectStore(objectStoreName); //Get the object store from the current transaction
+
+		if (actions && typeof actions === "function") {
+			actions(db, objectStore);
+		}
+
+		// Example of how to add an index (if it doesn't exist)
+		//if (!objectStore.indexNames.contains("newIndex")) {
+		//	objectStore.createIndex("newIndex", "newIndex", { unique: false });
+		//}
+	};
+
+	request.onsuccess = (event) => {
+		const db = event.target.result;
+		console.log(`Successfully opened database ${dbName}`);
+		db.close();
+	};
+}
+//initializeDatabase("mangas", 2, "manga", (db, objectStore) => {
+//	// Increment version!
+//	console.log("Upgrading database...", db, objectStore);
+//	//Add index or perform other actions here if needed
+//	if (!objectStore.indexNames.contains("city")) {
+//		objectStore.createIndex("city", "city", { unique: false });
+//	}
+//});
+
 
 function openDB() {
 	return new Promise((resolve, reject) => {
@@ -522,8 +620,18 @@ async function deleteCollection(collectionName) {
 
 
 export {
-	openDB, addGame, getAllGames, getGame,
+	openDB,
+	addGame,
+	getAllGames,
+	getGame,
 	exportIndexedDB,
-	addOrUpdateSource, getSourceById, getAllSources, deleteSource,
-	addOrUpdateCollection, getCollectionOrAll, deleteCollection
+	addOrUpdateSource,
+	getSourceById,
+	getAllSources,
+	deleteSource,
+	addOrUpdateCollection,
+	getCollectionOrAll,
+	deleteCollection,
+	getAllIndexedDBs,
+	initializeDatabase,
 };

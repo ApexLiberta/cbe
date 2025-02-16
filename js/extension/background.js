@@ -1,194 +1,35 @@
 import {
 	openDB, addGame, getGame, getAllGames,
 	addOrUpdateCollection, getCollectionOrAll, deleteCollection,
-	addOrUpdateSource, getAllSources
+	addOrUpdateSource, getAllSources,
+	getAllIndexedDBs, initializeDatabase
 } from "../db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
 (function () {
 	managePageAction();
 })();
-const settings = {
-	overview: {
-		type: "group",
-		label: "overview",
-		description: "General settings for the application.",
-		config: {
-			addToPlayniteOnGameAdd: {
-				type: "toggle",
-				label: "Add to Playnite on Game Add",
-				description:
-					"Automatically adds new games to Playnite when they are detected.",
-				default: true, // Added default value for clarity and potential form handling
-			},
-			optionsPage: {
-				type: "link",
-				label: "Options Page",
-				description: "Show the options page in the extension popup.",
-				href: "/pages/extension/options.html",
-			},
-			tmpPage: {
-				type: "link",
-				label: "tmp Page",
-				description: "Show the options page in the extension popup.",
-				href: "/@tmp/main.html",
-			},
-		},
-	},
-	libraries: {
-		type: "group",
-		label: "Libraries",
-		description: "Manage your game libraries and sources.",
-		config: {
-			addLibrary: {
-				type: "button",
-				label: "Add Library",
-				description: "Add a new library to organize games.",
-				action: "addLibrary",
-			},
-			sources: {
-				type: "list",
-				label: "Sources",
-				description: "List of sources to check for game information.",
-				listItemType: "group", // Added listItemType to describe the type of items in the list
-				addable: true,
-				removable: true,
-				list: [
-					{
-						type: "group",
-						label: "Steam",
-						config: {
-							name: { type: "static", label: "Name", value: "steam" },
-							gistId: {
-								type: "text",
-								label: "Gist ID",
-								value: "your_gist_id",
-								placeholder: "Enter your Gist ID",
-								description: "Your personal Gist ID for Steam integration.",
-							},
-							version: { type: "number", label: "Version", value: 0.1 },
-							enabled: { type: "toggle", label: "Enabled", default: true },
-							matches: {
-								type: "static",
-								label: "Matches",
-								value: "*://*.steampowered.com/app/*",
-							},
-						},
-					},
-				],
-			},
-			filters: {
-				type: "list",
-				label: "Filters",
-				description: "List of filters to apply to game information.",
-				listItemType: "group",
-				addable: true,
-				removable: true,
-				list: [],
-			},
-			tags: {
-				type: "list",
-				label: "Tags",
-				description: "List of tags to apply to games.",
-				listItemType: "text", // Assuming tags are simple text inputs
-				addable: true,
-				removable: true,
-				list: [],
-			},
-			features: {
-				type: "list",
-				label: "Features",
-				description: "List of features to apply to games.",
-				listItemType: "text", // Assuming features are simple text inputs
-				addable: true,
-				removable: true,
-				list: [],
-			},
-			collections: {
-				type: "list",
-				label: "Collections",
-				description: "List of collections to organize games.",
-				listItemType: "text", // Assuming collections are simple text inputs
-				addable: true,
-				removable: true,
-				list: [],
-			},
-		},
-	},
-	appearance: {
-		type: "group",
-		label: "Appearance", // Added label for better UI context
-		description: "Customize the look and feel of the application.", // More descriptive
-		config: {
-			theme: {
-				type: "dropdown",
-				label: "Theme",
-				description: "Select the application theme.",
-				options: [
-					{ value: "light", label: "Light" },
-					{ value: "dark", label: "Dark" },
-					{ value: "system", label: "System Default" },
-				], // More structured options for dropdown
-				default: "system",
-			},
-			listMode: {
-				type: "dropdown",
-				label: "List Mode",
-				description: "Choose how games are displayed in lists.",
-				options: [
-					{ value: "grid", label: "Grid" },
-					{ value: "list", label: "List" },
-					{ value: "detailed", label: "Detailed List" },
-				],
-				default: "grid",
-			},
-			language: {
-				type: "dropdown",
-				label: "Language",
-				description: "Application language.",
-				options: [
-					{ value: "en", label: "English" },
-					{ value: "es", label: "Spanish" },
-					{ value: "fr", label: "French" },
-					// ... more languages
-				],
-				default: "en",
-			},
-		},
-	},
-	about: {
-		type: "group",
-		label: "About", // Added label for better UI context
-		description: "Information about this application.", // More descriptive
-		config: {
-			version: {
-				type: "static",
-				label: "Version",
-				value: "7.7.10",
-				description: "Current application version.",
-			},
-			// Could add more static info here like copyright, author, etc.
-		},
-	},
-};
-console.clear();
-console.log(settings)
+
+async function loadSettingsJson() {
+	const response = await fetch("/js/json/settings.json");
+	return await response.json();
+}
+
 browser.runtime.onInstalled.addListener(() => {
 	browser.storage.local
 		.get("settings")
 		.then((result) => {
 			if (!result.settings) {
-				// Settings don't exist, create them with defaults
-				browser.storage.local
-					.set({ settings })
-					.then(() => {
-						console.log("Settings created successfully");
-					})
-					.catch((error) => {
-						console.error("Error saving settings:", error);
-					});
-			} else {
-				console.log("Settings already exist");
+				loadSettingsJson().then((settings) => {
+					browser.storage.local
+						.set({ settings })
+						.then(() => {
+							console.log("Settings created successfully");
+						})
+						.catch((error) => {
+							console.error("Error saving settings:", error);
+						});
+				});
 			}
 		})
 		.catch((error) => {
@@ -208,43 +49,47 @@ browser.pageAction.onClicked.addListener((tab) => {
 	browser.tabs.sendMessage(tab.id, { action: "pageActionClick", tab });
 });
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	/*
-	switch (operation) {
-		case "mgr_collection":
-			return;
-		default:
-			throw new Error(
-				`Invalid operation: ${operation}. Must be 'addOrUpdate', 'get', 'getAll', or 'delete'.`
-			);
-	}
-	*/
-	if (request.action === "getSettings") {
-		// Get settings from storage
-		browser.storage.local
-			.get("settings")
-			.then((result) => sendResponse(result.settings || {}))
+
+	switch (request.action) {
+		case "getSettings":
+			browser.storage.local
+				.get("settings")
+				.then((result) => sendResponse(result.settings || {}))
+				.catch((error) => {
+					console.error("Error getting settings:", error);
+					sendResponse({ error: "Error loading settings" });
+					return {};
+				});
+			break;
+		case "updateSettings":
+			break;
+		case "getLibraries":
+			getAllIndexedDBs()
+				.then((libraries) => {
+					sendResponse(libraries);
+				})
+				.catch((error) => {
+					console.error("Error getting libraries:", error);
+					sendResponse({ error: "Error loading libraries" });
+				});
+			return true;
+		case "addLibrary":
+			initializeDatabase(request.name).then((library) => {
+				console.log(library);
+				sendResponse(library);
+			})
 			.catch((error) => {
-				console.error("Error getting settings:", error);
-				sendResponse({ error: "Error loading settings" });
-				return {};
-			});
+				console.error("Error adding library:", error);
+				sendResponse({ error: "Error adding library" });
+			})
+		default:
+			console.log("Unknown action:", request.action);
 	}
 
 	if (request.action === "checkUrl") {
 		const result = doesUrlMatchPattern(request.url, request.pattern);
 		console.log(request.url, request.pattern);
 		sendResponse(result);
-	}
-	if (request.action === "pageAction") {
-		const urlRegex = new RegExp(
-			"(https?://)([\\w.]+).(steampowered.com/app/|epicgames.com/en-US/p/)"
-		);
-
-		if (urlRegex.test(request.tabUrl)) {
-			console.log("The current URL matches one of the provided URLs.");
-		} else {
-			console.log("The current URL does not match any of the provided URLs.");
-		}
 	}
 
 	if (request.action === "addGame") {
@@ -418,6 +263,3 @@ async function fetchGistCode(gistId) {
 		return null;
 	}
 }
-
-
-console.log(openDB());

@@ -7,7 +7,7 @@ import {
 	connectSettingsDialog,
 	confirmationDialog,
 } from "./components/dialog.js";
-import { createSectionElement } from "./components/settings.js";
+import { createSettingElement } from "./components/settings.js";
 import { asideTemplate } from "./components/templates.js";
 
 
@@ -789,32 +789,50 @@ settingsButton.addEventListener("click", () => {
 
 	browser.runtime
 		.sendMessage({ action: "getSettings" })
-		.then((response) => {
-			if (response) {
-				logSettings(response)
-				for (const sectionKey in response) {
-					const section = response[sectionKey];
+		.then((settings) => {
+			if (settings) {
+				logSettings(settings)
+				for (const sectionKey in settings) {
 					const asideListItem = document.createElement("li");
 					const btnTag = document.createElement("button");
 					btnTag.textContent = sectionKey;
-					btnTag.classList.add("aside-btn", "trigger");
+					btnTag.classList.add("aside-btn");
 					asideListItem.appendChild(btnTag);
+
+					const section = settings[sectionKey];
 
 					btnTag.addEventListener("click", (event) => {
 						// More efficient active class management
 						if (!event.target.classList.contains("active")) {
-							dialogSidebarLabels.querySelectorAll("button").forEach((btn) => {
-								btn.classList.toggle("active", btn === btnTag); // Toggle active
-							});
+							const sectionDiv = document.createElement("div");
+							sectionDiv.classList.add("settings-section");
 
-							dialogContent.innerHTML = "";
-							const sectionElement = createSectionElement(section, sectionKey);
-							dialogContent.appendChild(sectionElement);
+							const sectionHeader = document.createElement("h2");
+							sectionHeader.textContent = section.label || sectionKey;
 
-							activeBg.dataset.active = sectionKey;
-							activeBg.setAttribute("data-content", sectionKey);
+							if (section.description) {
+								const sectionDescription = document.createElement("p");
+								sectionDescription.classList.add("section-description");
+								sectionDescription.textContent = section.description;
+							}
 
-							if (event.target.textContent == "overview") {
+							if (section.options) {
+								const configContainer = document.createElement("div");
+								configContainer.classList.add("settings-config");
+								for (const settingKey in (section.options)) {
+									const setting = section.options[settingKey];
+									const settingElement = createSettingElement(
+										setting,
+										settingKey,
+										sectionKey
+									);
+									configContainer.appendChild(settingElement);
+								}
+								sectionDiv.appendChild(configContainer);
+							}
+
+							if (sectionKey === "overview") {
+								console.log("overview");
 								const btnsCont = document.createElement("div");
 								btnsCont.classList.add("flex-row", "equal");
 								const btnArray = [
@@ -840,12 +858,134 @@ settingsButton.addEventListener("click", () => {
 									btnTag.append(btnTitle, btnDec);
 									btnsCont.appendChild(btnTag);
 								});
-								dialogContent.prepend(btnsCont);
+								sectionDiv.prepend(btnsCont);
 							}
+							if (sectionKey === "libraries") {
+								dialogContent.querySelectorAll(".settings-section").forEach((section) => {
+									console.log("section", section);
+								})
+								browser.runtime
+									.sendMessage({ action: "getLibraries" })
+									.then((dbs) => {
+										if (dbs) {
+											const librariesDropdown = document.createElement("div");
+											librariesDropdown.classList.add(
+												"settings-section",
+												"btn-ctx-dropdown",
+												"libraries-dropdown"
+											);
+											const librariesDropdownBtn = document.createElement("button");
+											librariesDropdownBtn.classList.add("dropdown-btn");
+											librariesDropdownBtn.innerHTML = `
+												<span class="icon">
+													<i class="fa-solid fa-database"></i>
+												</span>
+												<span class="txt">Libraries</span>
+												<span class="icon margin-left">
+													<i class="fa-solid fa-chevron-down"></i>
+												</span>
+											`;
+											const librariesDropdownCtx = document.createElement("div");
+											librariesDropdownCtx.classList.add("dropdown-ctx", "hidden");
+											librariesDropdown.append(librariesDropdownBtn, librariesDropdownCtx);
+											sectionHeader.nextSibling ? sectionHeader.after(librariesDropdown) : sectionHeader.after(librariesDropdown);
+
+											librariesDropdownBtn.addEventListener("click", (event) => {
+												librariesDropdownCtx.classList.toggle("hidden");
+											})
+											const librariesUl = document.createElement("ul");
+											dbs.forEach((db) => {
+												const li = document.createElement("li");
+												const btn = document.createElement("button");
+												btn.innerHTML = `
+													<span class="icon">
+														<i class="fa-solid fa-database"></i>
+													</span>
+													<span class="txt">${db.name}</span>
+													<span class="txt">${db.version}</span>
+												`;
+												btn.dataset.db_name = db.name;
+												btn.dataset.db_version = db.version;
+												li.appendChild(btn);
+												librariesUl.appendChild(li);
+												btn.addEventListener("click", (event) => {
+													librariesDropdownCtx.classList.toggle("hidden");
+													librariesDropdownBtn.querySelector(".txt").textContent = db.name;
+													console.log("db", db, btn, btn.dataset.db_name, btn.dataset.db_version);
+													browser.runtime.sendMessage({action: "addLibrary", name: db.name, version: db.version}).then((response) => {
+														console.log(response)
+													})
+												})
+												section.options.libraries.list.push(db);
+											})
+											const addLi = document.createElement("li");
+											const addBtn = document.createElement("button");
+											addBtn.innerHTML = `
+												<span class="icon">
+													<i class="fa-solid fa-plus"></i>
+												</span>
+												<span class="txt">Add Library</span>
+											`;
+											addLi.appendChild(addBtn);
+											addBtn.addEventListener("click", (event) => {
+												librariesDropdownCtx.classList.toggle("hidden");
+												librariesDropdownBtn.remove()
+												const addLibraryFormDiv = document.createElement("div");
+												addLibraryFormDiv.innerHTML = `
+													<form id="add-library-form">
+														<input type="text" id="library-name" placeholder="Library Name" name="library-name">
+														<button type="submit">Add Library</button>
+														<button type="button" id="cancel-library">Cancel</button>
+													</form>
+												`;
+												librariesDropdown.prepend(addLibraryFormDiv);
+												const addLibraryForm = document.getElementById("add-library-form");
+												const cancelLibrary = document.getElementById("cancel-library");
+												cancelLibrary.addEventListener("click", (event) => {
+													addLibraryForm.remove();
+													librariesDropdown.prepend(librariesDropdownBtn);
+												})
+												addLibraryForm.addEventListener("submit", (event) => {
+													event.preventDefault();
+													const libraryName = addLibraryForm.querySelector("#library-name").value;
+													if (libraryName) {
+														console.log("name", libraryName);
+													}
+													browser.runtime.sendMessage({ action: "addLibrary", name: libraryName }).then((response) => {
+														console.log("response", response);
+													})
+												})
+											})
+											librariesUl.appendChild(addLi);
+											librariesDropdownCtx.appendChild(librariesUl);
+											console.group("Libraries", dbs);
+											console.log("Libraries", section.options.libraries);
+
+											//console.info("index", dbs, dialogContent);
+											console.groupEnd();
+										}
+									})
+									.catch((error) => {
+										console.error("Error getting database:", error); // More descriptive error message
+									});
+							}
+
+							dialogSidebarLabels.querySelectorAll("button").forEach((btn) => {
+								btn.classList.toggle("active", btn === btnTag);
+							});
+							dialogContent.innerHTML = "";
+							dialogContent.appendChild(sectionHeader);
+							dialogContent.appendChild(sectionDiv);
+							activeBg.dataset.active = sectionKey;
+							activeBg.setAttribute("data-content", sectionKey);
+						}else{
+							console.log("Already active")
 						}
 					});
-
 					dialogSidebarLabels.appendChild(asideListItem);
+					if(sectionKey === "overview"){
+						btnTag.click();
+					}
 				}
 			}
 		})

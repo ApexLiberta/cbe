@@ -801,6 +801,8 @@ a {
 	}
 	.dropdown-ctx{
 		position: absolute;
+		width: 100%;
+		min-height: 12px;
 		background-color: rgb(43, 42, 51);
 		margin: 4px 0 0 0;
 		padding: 6px;
@@ -1035,6 +1037,36 @@ a {
 				background-color: #171d25;
 				font-size: large;
 				overflow-y: auto;
+				h2{
+					text-transform: capitalize;
+					margin: 10px 0 20px 0;
+				}
+				.btn-ctx-dropdown{
+					button{
+						width: 100%;
+						height: 46px;
+						display: flex;
+						align-items: center;
+						font-size: 18px;
+						margin: 0 0 12px 0;
+						padding: 0 12px;
+						border-radius: 8px;
+						.txt{
+							margin: 0 auto 0 12px;
+						}
+						.icon{
+							margin: 0px;
+						}
+					}
+				}
+				.dropdown-ctx{
+					ul{
+						list-style: none;
+						li{
+							margin: 4px;
+						}
+					}
+				}
 				ol{
 					list-style: none;
 
@@ -1062,6 +1094,29 @@ a {
 					text-wrap: nowrap;
 					color: rgba(0, 0, 0, 0);
 					opacity: .2;
+				}
+			}
+
+			#add-library-form{
+				display: flex;
+				align-items: center;
+				border-radius: 8px;
+				background-color: #2b2a33;
+				overflow: hidden;
+				#library-name{
+					width: 100%;
+					margin: 0px;
+				}
+				button{
+					display: block;
+					width: max-content;
+					min-width: 112px;
+					height: 36px;
+					font-size: 16px;
+					margin: 0px 8px 0 0;
+				}
+				#cancel-library{
+					min-width: max-content;
 				}
 			}
 		}

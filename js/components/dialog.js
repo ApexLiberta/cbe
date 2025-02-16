@@ -90,14 +90,14 @@ export const createCollectionDialog = () => {
 export const connectSettingsDialog = () => {
     const sidebar = document.createElement("aside");
     const content = document.createElement("div");
-    const title = document.createElement("div");
+    const bgTitle = document.createElement("div");
     sidebar.innerHTML = `
         <ul class="settings-group">
         </ul>
     `;
     content.classList.add("settings-content");
-    title.classList.add("active-bg");
-    return [sidebar, content, title];
+    bgTitle.classList.add("active-bg");
+    return [sidebar, content, bgTitle];
 };
 
 export const confirmationDialog = (dataObj) => {

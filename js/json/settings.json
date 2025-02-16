@@ -1,0 +1,38 @@
+{
+    "overview": {
+        "label": "overview",
+        "description": "This is the overview page"
+    },
+    "libraries": {
+        "label": "libraries",
+        "description": "Manage your game libraries and sources.",
+        "options": {
+            "libraries": {
+                "label": "libraries",
+                "description": "List of game libraries.",
+                "type": "list",
+                "listItemType": "group",
+                "addable": true,
+                "removable": true,
+                "button": {
+                    "type": "button",
+                    "label": "Add Library",
+                    "description": "Add a new library to organize games.",
+                    "action": "addLibrary"
+                },
+                "flex": "column",
+                "list": []
+            },
+            "sources": {
+                "label": "sources",
+                "description": "List of sources to check for game information.",
+                "type": "list",
+                "listItemType": "group",
+                "addable": true,
+                "removable": true,
+                "flex": "column",
+                "list": []
+            }
+        }
+    }
+}

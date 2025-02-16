@@ -1,36 +1,3 @@
-export function createSectionElement(section, sectionKey) {
-	const sectionDiv = document.createElement("div");
-	sectionDiv.classList.add("settings-section"); // Add a class for styling
-
-	const sectionHeader = document.createElement("h2");
-	sectionHeader.textContent = section.label || sectionKey; // Use label if available, otherwise key
-	sectionDiv.appendChild(sectionHeader);
-
-	if (section.description) {
-		const sectionDescription = document.createElement("p");
-		sectionDescription.classList.add("section-description");
-		sectionDescription.textContent = section.description;
-		sectionDiv.appendChild(sectionDescription);
-	}
-
-	if (section.config) {
-		const configContainer = document.createElement("div");
-		configContainer.classList.add("settings-config");
-		for (const settingKey in section.config) {
-			const setting = section.config[settingKey];
-			const settingElement = createSettingElement(
-				setting,
-				settingKey,
-				sectionKey
-			);
-			configContainer.appendChild(settingElement);
-		}
-		sectionDiv.appendChild(configContainer);
-	}
-
-	return sectionDiv;
-}
-
 export function createSettingElement(setting, settingKey, sectionKey) {
 	const settingDiv = document.createElement("div");
 	settingDiv.classList.add("setting-item", setting.type);
