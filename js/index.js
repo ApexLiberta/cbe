@@ -17,6 +17,7 @@ const PAGE_LIBRARY = "library";
 const PAGE_COLLECTIONS = "collections";
 const PAGE_COLLECTION = "collection";
 const PAGE_GAME = "game";
+const PAGE_SETTINGS = "settings";
 
 // Constants for action names
 const ACTION_GET_ALL_COLLECTIONS = "getAllCollections";
@@ -24,7 +25,7 @@ const ACTION_ADD_OR_UPDATE_COLLECTION = "addOrUpdateCollection";
 const ACTION_GET_ALL_GAMES = "getAllGames";
 
 // Constants for class names
-const CLASS_LIBRARY_COLLECTIONS = "library-collections";
+const CLASS_LIBRARY_COLLECTIONS = "library-content";
 const CLASS_COLLECTIONS_HEADER = "collections-header";
 const CLASS_CONTAINER = "container";
 const CLASS_CREATE_COLLECTION_BTN = "create-collection-btn";
@@ -63,6 +64,18 @@ const isBrowser = isBrowserEnvironment();
 function extensionPageManger(){
 
 }
+
+const heroHeader = document.querySelector("header");
+const heroNav = heroHeader.querySelector(".hero-nav");
+const toggleLibrary = heroNav.querySelector("#toggleLibrary");
+toggleLibrary.addEventListener("click", () => {
+	heroNav.querySelectorAll("h2").forEach((h2) => {
+		h2.classList.toggle("active");
+	});
+	const activeText = heroNav.querySelector(".active").textContent;
+	activeText == "connect" ? libraryMgr(PAGE_HOME) : libraryMgr(PAGE_LIBRARY);
+})
+
 
 /*
 const getSettingsJson = browser.runtime.sendMessage({ action: "getSettings" })
@@ -103,7 +116,6 @@ getCollections.then((response) => {
 });
 */
 
-const libraryCollections = document.querySelector(".library-collections");
 const homeButton = document.querySelector("#library-home-btn");
 
 const collectionButton = document.querySelector(".library-collection-icon-btn");
@@ -128,14 +140,97 @@ function initializeEvents() {
 }
 
 
+const aside = asideTemplate();
+
+function loadAsideCollections() {
+	aside.querySelectorAll(".page-mgr-btn").forEach((btn) => {
+		btn.addEventListener("click", () => {
+			libraryMgr(btn.dataset.page);
+		});
+	});
+	browser.runtime.sendMessage({ action: "getAllCollections" }, (response) => {
+		if (response.error) {
+			console.error("Error:", response.error);
+		} else {
+			console.log("Received collections:", response.collections);
+			aside.querySelector(".collections-cont").innerHTML = ``;
+			response.collections.forEach((collection) => {
+				//if (collection.inSidebar && collection.games){
+				if (collection.inSidebar) {
+					const collectionElement = document.createElement("div");
+					collectionElement.className = "collection";
+
+					const groupHeader = document.createElement("div");
+					groupHeader.classList.add("group-header");
+
+					const groupExpandToggle = document.createElement("button");
+					groupExpandToggle.classList.add("expand-toggle");
+					groupExpandToggle.addEventListener("click", (event) => {
+						event.target.classList.toggle("expanded");
+					});
+
+					const loadGroupBtn = document.createElement("button");
+					loadGroupBtn.classList.add("load-group-btn");
+					loadGroupBtn.dataset.page = collection.name;
+					loadGroupBtn.innerHTML = `
+					<span class=""txt>${collection.name || "Untitled Collection"}</span>
+					`;
+					if (collection.games || collection.games !== undefined) {
+						const gamesLength = document.createElement("span");
+						gamesLength.classList.add("text");
+						gamesLength.textContent = `(${collection.games.length})`;
+					}
+					if (collection.isDynamic) {
+						const iconSpan = document.createElement("span");
+						iconSpan.classList.add("icon");
+						const iconElement = document.createElement("i");
+						iconElement.classList.add("fa-solid", "fa-bolt");
+						iconSpan.appendChild(iconElement);
+						loadGroupBtn.appendChild(iconSpan);
+					}
+					loadGroupBtn.addEventListener("click", (event) => {
+						libraryMgr("collection", collection);
+					});
+
+					const groupPin = document.createElement("button");
+					groupPin.classList.add("group-pin");
+					groupPin.innerHTML = `<i class="fa-solid fa-thumbtack"></i>`;
+
+					groupHeader.append(groupExpandToggle, loadGroupBtn, groupPin);
+					collectionElement.appendChild(groupHeader);
+					aside
+						.querySelector(".collections-cont")
+						.appendChild(collectionElement);
+				}
+			});
+		}
+	});
+}
+
+let libraryContent;
 
 function libraryMgr(page, data) {
 	let newUrl;
+	if(page !== PAGE_HOME){
+		console.log(page !== PAGE_HOME, page, PAGE_HOME);
+		isBrowserEnvironment() ? loadAsideCollections() : false;
+		document.querySelector(".library-container").prepend(aside);
+		const mainSection = document.createElement("section")
+		mainSection.classList.add("library-content");
+		document.querySelector(".library-container").appendChild(mainSection);
+		libraryContent = document.querySelector(".library-content");
+
+	}
 	switch (page) {
 		case PAGE_HOME:
+			//document.querySelector(".library-content").innerHTML = ``;
+			document.querySelector(".library-container").innerHTML = ``;
+			console.info(`${PAGE_HOME} page loaded`);
+			break;
+		case PAGE_LIBRARY:
 			newUrl = "/";
 			homeButton.classList.toggle("active");
-			libraryCollections.innerHTML = `
+			libraryContent.innerHTML = `
 
 				<div class="shelfs">
 					<button class="add-shelf">Add shelf</button>
@@ -180,8 +275,8 @@ function libraryMgr(page, data) {
 					</div>
 					-->
 				</div>`;
-			//libraryCollections.prepend(getShelfHtml({ name: "coll", count: 3 }));
-			libraryCollections.prepend(getHomePageHtml());
+			//libraryContent.prepend(getShelfHtml({ name: "coll", count: 3 }));
+			libraryContent.prepend(getHomePageHtml());
 
 			document
 				.querySelector(".add-shelf")
@@ -220,71 +315,20 @@ function libraryMgr(page, data) {
 					}
 
 					const gameItems = document.querySelectorAll(".game-item");
+					//NOTE - async Click
 					gameItems.forEach((item) => {
 						item.addEventListener("click", async () => {
-							try {
-								const gameName = item.querySelector("h3").innerText;
-								fetchGameData(gameName)
-									.then((gameInfo) => {
-										//console.log("Received game:", gameInfo);
-										//gamePopup.style.display = "block";
-										const dialogManagerVar = dialogManager();
-										dialogManagerVar.classList.add("game-details-dialog");
-										const dialogVar = dialogManagerVar.querySelector(".dialog");
-										console.log(dialogVar);
-										dialogVar.classList.add("game-details", "popup-content");
-										for (const fd in gameInfo) {
-											if (fd !== "id") {
-												if (
-													fd === "genres" ||
-													fd === "features" ||
-													fd === "tags"
-												) {
-													const fdd = document.createElement("div");
-													fdd.classList.add(`fd-${fd}`);
-													gameInfo[fd].forEach((element) => {
-														createAndAppendSpan(fdd, element);
-													});
-													dialogVar.append(fdd);
-												} else if (fd === "link") {
-													for (const key in gameInfo[fd]) {
-														const link = document.createElement("a");
-														link.href = gameInfo[fd][key] || "#";
-														link.innerText = key || "Link";
-														link.target = "_blank";
-														dialogVar.append(link);
-													}
-												} else {
-													createAndAppendSpan(
-														dialogVar,
-														gameInfo[fd],
-														`fd-${fd}`
-													);
-												}
-											}
-										}
-
-										console.log(dialogManagerVar);
-									})
-									.catch((error) => {
-										console.error("Error fetching game data:", error);
-									});
-							} catch (error) {
-								console.error("Error fetching game data:", error);
-							}
+							libraryMgr(PAGE_GAME, item.querySelector("h3").innerText);
 						});
 					});
 				}
 			});
-			console.info(`${PAGE_HOME} page loaded`);
-			break;
-		case PAGE_LIBRARY:
 			console.info(`${PAGE_LIBRARY} page loaded`);
 			break;
 		case PAGE_COLLECTIONS:
 			newUrl = "/collections";
-			if (!libraryCollections) {
-				console.error("Element with class 'library-collections' not found.");
+			if (!libraryContent) {
+				console.error("Element with class 'library-content' not found.");
 				return; // Exit the function if the element doesn't exist
 			}
 
@@ -302,8 +346,8 @@ function libraryMgr(page, data) {
 			`;
 			collectionContainer.prepend(createCollectionDiv);
 
-			libraryCollections.innerHTML = ""; // Clear existing content
-			libraryCollections.append(collectionDiv, collectionContainer);
+			libraryContent.innerHTML = ""; // Clear existing content
+			libraryContent.append(collectionDiv, collectionContainer);
 
 			createCollectionDiv.addEventListener("click", () => {
 				const dialog = document.querySelector(".create-collection.dialog");
@@ -378,7 +422,7 @@ function libraryMgr(page, data) {
 						response.collections.forEach((collection) => {
 							const collDataBtn = document.createElement("button");
 							collDataBtn.className = "collection";
-							collDataBtn.dataset.collection = collection.name
+							collDataBtn.dataset.collection = collection.name;
 							collDataBtn.innerHTML = `
 								<h3>${collection.name || "Untitled Collection"}</h3>
 								<p>( ${collection.games ? collection.games.length : 0} )</p>
@@ -386,7 +430,7 @@ function libraryMgr(page, data) {
 							collectionContainer.appendChild(collDataBtn);
 							collDataBtn.addEventListener("click", (event) => {
 								libraryMgr("collection", collection);
-							})
+							});
 						});
 					}
 				}
@@ -406,14 +450,14 @@ function libraryMgr(page, data) {
 					options: [],
 					default: "private",
 					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button"
+					type: "button",
 				},
 				{
 					name: "delete",
 					options: [],
 					default: "delete",
 					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button"
+					type: "button",
 				},
 			];
 			const collectionFiltersArrReview = [
@@ -471,7 +515,7 @@ function libraryMgr(page, data) {
 						},
 						{
 							label: "pornographic",
-						}
+						},
 					],
 					default: "any",
 				},
@@ -500,11 +544,9 @@ function libraryMgr(page, data) {
 					icon: '<i class="fa-solid fa-trash"></i>',
 				},
 			];
-			const collectionSettingsArr = [
-
-			]
-			libraryCollections.innerHTML = ``;
-			libraryCollections.classList.add("collection-page");
+			const collectionSettingsArr = [];
+			libraryContent.innerHTML = ``;
+			libraryContent.classList.add("collection-page");
 
 			const pageHeader = document.createElement("div");
 			pageHeader.classList.add("collection-header", "flex-row");
@@ -526,13 +568,15 @@ function libraryMgr(page, data) {
 
 			renameBtn.addEventListener("click", (event) => {
 				console.log(event.target);
-			})
+			});
 
 			const lengthSpan = document.createElement("span");
 			lengthSpan.textContent = "( 0 )";
 
 			//data.games ? lengthSpan.textContent = `( ${data.games.length} )` : lengthSpan.textContent = `( 0 )`;
-			data.games ? lengthSpan.textContent = `( ${data.games.length} )` : lengthSpan.textContent = ``;
+			data.games
+				? (lengthSpan.textContent = `( ${data.games.length} )`)
+				: (lengthSpan.textContent = ``);
 			collLabelCont.append(nameTag, renameBtn, lengthSpan);
 
 			const filterBtn = document.createElement("button");
@@ -604,11 +648,14 @@ function libraryMgr(page, data) {
 
 				btn.addEventListener("click", (event) => {
 					const check = event.target.classList.contains("active");
-					const allDropdowns = settingCont.querySelectorAll(".btn-ctx-dropdown");
+					const allDropdowns =
+						settingCont.querySelectorAll(".btn-ctx-dropdown");
 
-					if(filterObj.type !== "button"){
+					if (filterObj.type !== "button") {
 						allDropdowns.forEach((dropdown) => {
-							dropdown.querySelector(".dropdown-btn").classList.remove("active");
+							dropdown
+								.querySelector(".dropdown-btn")
+								.classList.remove("active");
 							dropdown.querySelector(".dropdown-ctx").classList.add("hidden");
 						});
 						if (!check) {
@@ -622,7 +669,8 @@ function libraryMgr(page, data) {
 							const dialogManagerVar = dialogManager(
 								confirmationDialog({
 									header: "Confirmation Dialog",
-									headerDesc: "Are you sure you want to delete this collection?",
+									headerDesc:
+										"Are you sure you want to delete this collection?",
 								})
 							);
 							dialogManagerVar.classList.add("delete-collection-dialog");
@@ -668,7 +716,9 @@ function libraryMgr(page, data) {
 					}
 				});
 
-				filterObj.type !== "button" ? div.append(label, btnsDiv, optionDiv) : div.append(label, btnsDiv);
+				filterObj.type !== "button"
+					? div.append(label, btnsDiv, optionDiv)
+					: div.append(label, btnsDiv);
 				settingCont.appendChild(div);
 			});
 
@@ -689,11 +739,235 @@ function libraryMgr(page, data) {
 			`;
 
 			pageHeader.append(collLabelCont, filterBtn, settingBtn);
-			libraryCollections.prepend(pageHeader, settingCont, itemsDiv);
-			console.info(`${data.name.toUpperCase() + " " + PAGE_COLLECTION} page loaded`);
+			libraryContent.prepend(pageHeader, settingCont, itemsDiv);
+			console.info(
+				`${data.name.toUpperCase() + " " + PAGE_COLLECTION} page loaded`
+			);
 			break;
 		case PAGE_GAME:
-			console.info(`${PAGE_GAME} page loaded`);
+			try {
+				fetchGameData(data)
+					.then((gameInfo) => {
+						//console.log("Received game:", gameInfo);
+						//gamePopup.style.display = "block";
+						libraryContent.innerHTML = ``;
+						libraryContent.dataset.page = PAGE_GAME;
+
+						const bannerDiv = document.createElement("div");
+						bannerDiv.classList.add("banner");
+						bannerDiv.innerHTML = `<img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1716740/extras/TellYourStory_v3.gif?t=1724184715" style="height: inherit;">`;
+						const actionNav = document.createElement("nav");
+						actionNav.classList.add("action-nav");
+						const tabsDiv = document.createElement("div");
+						tabsDiv.classList.add("tabs");
+						const statusButton = document.createElement("button");
+						statusButton.textContent = "Install";
+						statusButton.classList.add("status-button");
+						const sourceLink = document.createElement("a");
+						const itemInfoDiv = document.createElement("div");
+						itemInfoDiv.classList.add("item-info");
+						const addToFavoritesButton = document.createElement("button");
+						addToFavoritesButton.innerHTML = `<i class="fa-solid fa-heart"></i>`;
+						addToFavoritesButton.classList.add("favorite-button");
+						addToFavoritesButton.addEventListener("click", () => {
+							addToFavoritesButton.classList.toggle("active");
+						});
+						const moreInfoButton = document.createElement("button");
+						moreInfoButton.innerHTML = `<i class="fa-solid fa-circle-info"></i>`;
+						moreInfoButton.classList.add("more-info-button");
+						moreInfoButton.addEventListener("click", () => {
+							document
+								.querySelector(".entry-info-dropdown")
+								.classList.toggle("active");
+							moreInfoButton.classList.toggle("active");
+						});
+						const settingsButton = document.createElement("button");
+						settingsButton.innerHTML = `<i class="fa-solid fa-gear"></i>`;
+						settingsButton.classList.add("settings-button");
+						const editEntryButton = document.createElement("button");
+						editEntryButton.innerHTML = `<i class="fa-regular fa-pen-to-square"></i>`;
+						editEntryButton.classList.add("edit-entry-button");
+						const groupedButtonsDiv = document.createElement("div");
+						groupedButtonsDiv.classList.add("grouped-buttons");
+						groupedButtonsDiv.append(
+							addToFavoritesButton,
+							moreInfoButton,
+							editEntryButton,
+							settingsButton
+						);
+						actionNav.append(statusButton, groupedButtonsDiv);
+
+						const infoSectionDropdown = document.createElement("div");
+						infoSectionDropdown.classList.add("entry-info-dropdown");
+						const capsuleImgDiv = document.createElement("div");
+						capsuleImgDiv.classList.add("entry-capsule-cont");
+						infoSectionDropdown.append(capsuleImgDiv);
+
+						const linksList = document.createElement("ol");
+						linksList.classList.add("links-ol");
+						const linksArray = [
+							"whats new",
+							"store page",
+							"dlc",
+							"community hub",
+							"point shop",
+							"discussions",
+							"guides",
+							"workshop",
+							"market",
+							"support",
+						];
+						linksArray.forEach((link) => {
+							const linkLi = document.createElement("li");
+							linkLi.textContent = link;
+							linksList.appendChild(linkLi);
+						});
+						const entryPagePanel = document.createElement("div");
+						entryPagePanel.classList.add("entry-panel");
+						const entryPageAside = document.createElement("aside");
+						entryPageAside.classList.add("entry-aside");
+						const entryPageContent = document.createElement("div");
+						entryPageContent.classList.add("entry-content");
+						entryPagePanel.append(entryPageContent, entryPageAside);
+
+						libraryContent.append(
+							bannerDiv,
+							actionNav,
+							infoSectionDropdown,
+							tabsDiv,
+							linksList,
+							entryPagePanel
+						);
+						const gameHeading = document.createElement("h2");
+						gameHeading.textContent = data;
+						entryPageAside.prepend(gameHeading);
+						for (const fd in gameInfo) {
+							if ((fd !== "id") & (fd !== "name")) {
+								const infoDiv = document.createElement("div");
+								if (fd !== "description") {
+									const contheading = document.createElement("h3");
+									contheading.textContent = fd;
+									infoDiv.appendChild(contheading);
+								}
+								if (fd === "genres" || fd === "features" || fd === "tags") {
+									const fdd = document.createElement("div");
+									fdd.classList.add(`fd-${fd}`);
+									gameInfo[fd].forEach((element) => {
+										createAndAppendSpan(fdd, element);
+									});
+									console.log(fdd);
+									infoDiv.append(fdd);
+								} else if (fd === "link") {
+									for (const key in gameInfo[fd]) {
+										if (key === gameInfo.source) {
+											sourceLink.href = gameInfo[fd][key] || "#";
+											sourceLink.innerText = key || "Link";
+											sourceLink.target = "_blank";
+											statusButton.after(sourceLink);
+										}
+										const link = document.createElement("a");
+										link.href = gameInfo[fd][key] || "#";
+										link.innerText = key || "Link";
+										link.target = "_blank";
+										infoDiv.append(link);
+									}
+								} else {
+									createAndAppendSpan(infoDiv, gameInfo[fd], `fd-${fd}`);
+								}
+
+								entryPageAside.appendChild(infoDiv);
+							}
+						}
+
+						const scoresDiv = document.createElement("div");
+						scoresDiv.classList.add("scores");
+
+						const criticScoresDiv = document.createElement("div");
+						criticScoresDiv.classList.add("critic-scores");
+
+						const criticScoreLabel = document.createElement("p");
+						criticScoreLabel.textContent = "Critic:";
+						const criticScoreValue = document.createElement("p");
+						criticScoreValue.textContent = "85";
+
+						criticScoresDiv.append(criticScoreLabel, criticScoreValue);
+
+						const communityScoresDiv = document.createElement("div");
+						communityScoresDiv.classList.add("community-scores");
+
+						const communityScoreLabel = document.createElement("p");
+						communityScoreLabel.textContent = "Community:";
+						const communityScoreValue = document.createElement("p");
+						communityScoreValue.textContent = "92";
+
+						communityScoresDiv.append(communityScoreLabel, communityScoreValue);
+
+						const userScoresDiv = document.createElement("div");
+						userScoresDiv.classList.add("user-scores");
+
+						const userScoreLabel = document.createElement("p");
+						userScoreLabel.textContent = "User:";
+						const userScoreValue = document.createElement("p");
+						userScoreValue.textContent = "90";
+
+						userScoresDiv.append(userScoreLabel, userScoreValue);
+
+						scoresDiv.append(
+							criticScoresDiv,
+							communityScoresDiv,
+							userScoresDiv
+						);
+
+						entryPageAside.append(scoresDiv);
+
+						if (false) {
+							const dialogManagerVar = dialogManager();
+							dialogManagerVar.classList.add("game-details-dialog");
+							const dialogVar = dialogManagerVar.querySelector(".dialog");
+							console.log(dialogVar);
+							dialogVar.classList.add("game-details", "popup-content");
+							for (const fd in gameInfo) {
+								if (fd !== "id") {
+									if (fd === "genres" || fd === "features" || fd === "tags") {
+										const fdd = document.createElement("div");
+										fdd.classList.add(`fd-${fd}`);
+										gameInfo[fd].forEach((element) => {
+											createAndAppendSpan(fdd, element);
+										});
+										dialogVar.append(fdd);
+									} else if (fd === "link") {
+										for (const key in gameInfo[fd]) {
+											const link = document.createElement("a");
+											link.href = gameInfo[fd][key] || "#";
+											link.innerText = key || "Link";
+											link.target = "_blank";
+											dialogVar.append(link);
+										}
+									} else {
+										createAndAppendSpan(dialogVar, gameInfo[fd], `fd-${fd}`);
+									}
+								}
+							}
+							console.log(dialogManagerVar);
+						}
+					})
+					.catch((error) => {
+						console.error("Error fetching game data:", error);
+					});
+			} catch (error) {
+				console.error("Error fetching game data:", error);
+			}
+			console.info(`${PAGE_GAME} page loaded`, data);
+			break;
+		case PAGE_SETTINGS:
+			document.querySelector(".library-container").innerHTML = ``;
+			const asideTag = document.createElement("aside")
+			asideTag.classList.add("library-sidebar");
+			const contentSection = document.createElement("section")
+			document
+				.querySelector(".library-container")
+				.append(asideTag, contentSection);
+			console.log(PAGE_SETTINGS);
 			break;
 		default:
 			break;
@@ -709,75 +983,13 @@ function libraryMgr(page, data) {
 	}
 }
 
-const aside = asideTemplate();
-isBrowserEnvironment() ? loadAsideCollections(): false;
-function loadAsideCollections() {
-	aside.querySelectorAll(".page-mgr-btn").forEach((btn) => {
-		btn.addEventListener("click", () => {
-			libraryMgr(btn.dataset.page);
-		})
-	})
-	browser.runtime.sendMessage({ action: "getAllCollections" }, (response) => {
-		if (response.error) {
-			console.error("Error:", response.error);
-		} else {
-			console.log("Received collections:", response.collections);
-			aside.querySelector(".collections-cont").innerHTML = ``
-			response.collections.forEach((collection) => {
-				//if (collection.inSidebar && collection.games){
-				if (collection.inSidebar){
-					const collectionElement = document.createElement("div");
-					collectionElement.className = "collection";
-
-					const groupHeader = document.createElement("div");
-					groupHeader.classList.add("group-header");
-
-					const groupExpandToggle = document.createElement("button");
-					groupExpandToggle.classList.add("expand-toggle");
-					groupExpandToggle.addEventListener("click", (event) => {
-						event.target.classList.toggle("expanded");
-					})
-
-					const loadGroupBtn = document.createElement("button");
-					loadGroupBtn.classList.add("load-group-btn");
-					loadGroupBtn.dataset.page = collection.name;
-					loadGroupBtn.innerHTML = `
-					<span class=""txt>${collection.name || "Untitled Collection"}</span>
-					`;
-					if (collection.games || collection.games !== undefined) {
-						const gamesLength = document.createElement("span");
-						gamesLength.classList.add("text");
-						gamesLength.textContent = `(${collection.games.length})`
-					}
-					if (collection.isDynamic) {
-						const iconSpan = document.createElement("span");
-						iconSpan.classList.add("icon");
-						const iconElement = document.createElement("i");
-						iconElement.classList.add("fa-solid", "fa-bolt");
-						iconSpan.appendChild(iconElement);
-						loadGroupBtn.appendChild(iconSpan);
-					}
-					loadGroupBtn.addEventListener("click", (event) => {
-						libraryMgr("collection", collection);
-					})
-
-					const groupPin = document.createElement("button");
-					groupPin.classList.add("group-pin");
-					groupPin.innerHTML = `<i class="fa-solid fa-thumbtack"></i>`;
-
-					groupHeader.append(groupExpandToggle, loadGroupBtn, groupPin);
-					collectionElement.appendChild(groupHeader);
-					aside.querySelector(".collections-cont").appendChild(collectionElement);
-				}
-			})
-		}
-	});
-}
-document.querySelector(".library-container").prepend(aside);
 
 
 const settingsButton = document.querySelector("#settings-trigger");
 settingsButton.addEventListener("click", () => {
+	settingsButton.classList.toggle("active")
+	libraryMgr(PAGE_SETTINGS)
+	return
 	const dialogMgr = dialogManager(connectSettingsDialog());
 	dialogMgr.classList.add("settings-dialog");
 
@@ -816,7 +1028,7 @@ settingsButton.addEventListener("click", () => {
 								sectionDescription.textContent = section.description;
 							}
 
-							if (section.options) {
+							if (section.options && false) {
 								const configContainer = document.createElement("div");
 								configContainer.classList.add("settings-config");
 								for (const settingKey in (section.options)) {
@@ -909,11 +1121,15 @@ settingsButton.addEventListener("click", () => {
 												li.appendChild(btn);
 												librariesUl.appendChild(li);
 												btn.addEventListener("click", (event) => {
-													librariesDropdownCtx.classList.toggle("hidden");
-													librariesDropdownBtn.querySelector(".txt").textContent = db.name;
-													console.log("db", db, btn, btn.dataset.db_name, btn.dataset.db_version);
-													browser.runtime.sendMessage({action: "addLibrary", name: db.name, version: db.version}).then((response) => {
+													browser.runtime.sendMessage({action: "addLibrary", name: db.name, version: db.version, data: {opperation: "open"}}).then((response) => {
 														console.log(response)
+														if(response){
+															librariesDropdownCtx.classList.toggle("hidden");
+															librariesDropdownBtn.querySelector(".txt").textContent = db.name;
+															console.log("db", db, btn, btn.dataset.db_name, btn.dataset.db_version);
+														}else[
+															console.log("Error opening library")
+														]
 													})
 												})
 												section.options.libraries.list.push(db);
@@ -951,9 +1167,18 @@ settingsButton.addEventListener("click", () => {
 													if (libraryName) {
 														console.log("name", libraryName);
 													}
-													browser.runtime.sendMessage({ action: "addLibrary", name: libraryName }).then((response) => {
-														console.log("response", response);
-													})
+													browser.runtime
+														.sendMessage({
+															action: "addLibrary",
+															name: libraryName,
+															data: { opperation: "open" },
+														})
+														.then((response) => {
+															if(response && response.success){
+																librariesDropdownBtn.querySelector(".txt").textContent = libraryName;
+															}
+															console.log("response", response);
+														});
 												})
 											})
 											librariesUl.appendChild(addLi);
@@ -968,6 +1193,81 @@ settingsButton.addEventListener("click", () => {
 									.catch((error) => {
 										console.error("Error getting database:", error); // More descriptive error message
 									});
+
+								const sourcesListDiv = document.createElement("div");
+								const sourcesList = document.createElement("ul");
+								sourcesList.classList.add("sources-list");
+								const sourcesListHeader = document.createElement("h3");
+								sourcesListHeader.textContent = "Sources";
+								sourcesListDiv.appendChild(sourcesListHeader);
+								sourcesListDiv.appendChild(sourcesList);
+								sectionDiv.appendChild(sourcesListDiv);
+								browser.runtime.sendMessage({ action: "getSources" }).then((sources) => {
+									if (sources) {
+										sources.forEach((source) => {
+											const sourceLi = document.createElement("li");
+
+											const listHeader = document.createElement("div");
+											listHeader.classList.add("list-header");
+
+											const listHeading = document.createElement("h4");
+											listHeading.textContent = source.name;
+
+
+											const toggleDiv = document.createElement("div");
+											const label = document.createElement("label");
+											label.setAttribute("for", `${sectionKey}-${source.name}`); // Associate label with input
+											label.textContent = "Enable?"
+											const input = document.createElement("input");
+											input.type = "checkbox";
+											input.id = `${sectionKey}-${source.name}`;
+											input.classList.add("toggle-switch");
+											input.checked = source.default === true;
+											toggleDiv.append(label, input);
+											listHeader.append(listHeading, toggleDiv);
+
+											const matchesDiv = document.createElement("div");
+											matchesDiv.classList.add("matches-container", "flex-row");
+											const matchesHeader = document.createElement("h4");
+											matchesHeader.textContent = "Matches";
+											const matchesList = document.createElement("div");
+											matchesList.classList.add("matches-list");
+											matchesList.textContent = source.matches;
+											matchesDiv.append(matchesHeader, matchesList);
+
+
+
+											const selectorsContainer = document.createElement("div");
+											selectorsContainer.classList.add("selectors-container");
+											const selectorsHeader = document.createElement("h4");
+											selectorsHeader.textContent = "Selectors";
+											const selectorsList = document.createElement("div");
+											selectorsList.classList.add(
+												"selectors-list",
+												"tags-cont"
+											);
+											Object.entries(source.selectors).forEach(([key, value]) => {
+												const selectorSpan = document.createElement("span");
+												selectorSpan.classList.add("selector");
+												selectorSpan.textContent = key;
+												selectorsList.appendChild(selectorSpan);
+											});
+											selectorsContainer.append(selectorsHeader, selectorsList);
+											sourceLi.append(
+												listHeader,
+												matchesDiv,
+												selectorsContainer
+											);
+											sourcesList.appendChild(sourceLi);
+											input.addEventListener("click", (event) => {
+												console.log("source", source);
+												//browser.runtime.sendMessage({ action: "addSource", name: source.name, data: { opperation: "open" } }).then((response) => {
+												//	console.log("response", response);
+												//})
+											});
+										})
+									}
+								})
 							}
 
 							dialogSidebarLabels.querySelectorAll("button").forEach((btn) => {
@@ -1000,7 +1300,7 @@ function logSettings(data){
 // TODO Delete
 //  Call the function to load the library when the page loads
 //document.addEventListener("DOMContentLoaded", libraryMgr);
-window.addEventListener("load", libraryMgr("collections"));
+window.addEventListener("load", libraryMgr(PAGE_LIBRARY));
 
 const gamePopup = document.getElementById("gamePopup");
 const closeButton = document.querySelector(".close-button");

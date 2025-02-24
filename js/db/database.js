@@ -1,9 +1,6 @@
 import { sortObjectKeys, findDifferences } from "../extension/modules/helpers.js";
 
-const DB_NAME = "libraryDb";
-const DB_VERSION = 1;
-
-const GAMES_STORE = "games";
+const RECORDS_STORE = "records";
 const COLLECTIONS_STORE = "collections";
 const SOURCES_STORE = "sources";
 const SHELFS_STORE = "shelfs";
@@ -45,6 +42,7 @@ async function getAllIndexedDBs() {
 	}
 }
 
+
 //getAllIndexedDBs().then((databaseNames) => {
 //	console.log("IndexedDB Databases:", databaseNames);
 //	if (databaseNames.length > 0) {
@@ -64,16 +62,16 @@ async function getAllIndexedDBs() {
 //	}
 //});
 console.log("indexedDB")
-function indexedDBPromise(dbName, version, action) {
+export function indexedDBPromise(dbName, version, action) {
 	return new Promise((resolve, reject) => {
 
-		if (!dbName || !version || !action) {
-			const errorMessage =
-				"Database name, version, and object store name are required.";
-			console.error(errorMessage);
-			reject(errorMessage);
-			return;
-		}
+		//if (!dbName || !version || !action) {
+		//	const errorMessage =
+		//		"Database name, version, and object store name are required.";
+		//	console.error(errorMessage);
+		//	reject(errorMessage);
+		//	return;
+		//}
 		console.log(
 			`Attempting to open database: ${dbName}, version: ${version}, objectStore: ${action.objectStoreName}`
 		);
@@ -92,55 +90,7 @@ function indexedDBPromise(dbName, version, action) {
 	});
 
 }
-//initializeDatabase("mangas", 1, null)
-function initializeDatabase(dbName, version, objectStoreName) {
-	//if (!dbName || !version || !objectStoreName) {
-	//	console.error("Database name, version, and object store name are required.");
-	//}else{
-	//	console.log(dbName, version, objectStoreName)
-	//}
-	const request = indexedDB.open(dbName, version ? version : 1);
 
-	request.onerror = (event) => {
-		console.error(`Error opening database ${dbName}:`, event.target.error);
-	};
-
-	request.onupgradeneeded = (event) => {
-		const db = event.target.result;
-		console.log("onupgradeneeded", db);
-
-		console.log(event)
-		console.log(event.target)
-		console.log(event.target.transaction)
-		return
-		//console.log(event.target.transaction.objectStoreNames)
-
-		const objectStore = event.target.transaction.objectStore(objectStoreName); //Get the object store from the current transaction
-
-		if (actions && typeof actions === "function") {
-			actions(db, objectStore);
-		}
-
-		// Example of how to add an index (if it doesn't exist)
-		//if (!objectStore.indexNames.contains("newIndex")) {
-		//	objectStore.createIndex("newIndex", "newIndex", { unique: false });
-		//}
-	};
-
-	request.onsuccess = (event) => {
-		const db = event.target.result;
-		console.log(`Successfully opened database ${dbName}`);
-		db.close();
-	};
-}
-//initializeDatabase("mangas", 2, "manga", (db, objectStore) => {
-//	// Increment version!
-//	console.log("Upgrading database...", db, objectStore);
-//	//Add index or perform other actions here if needed
-//	if (!objectStore.indexNames.contains("city")) {
-//		objectStore.createIndex("city", "city", { unique: false });
-//	}
-//});
 
 
 function openDB() {
@@ -152,8 +102,8 @@ function openDB() {
 			console.log(db)
 
 			// Assuming you have a database object named `db` and a store name `gamesStore`
-			if (!db.objectStoreNames.contains(GAMES_STORE)) {
-				const store = db.createObjectStore(GAMES_STORE, {
+			if (!db.objectStoreNames.contains(RECORDS_STORE)) {
+				const store = db.createObjectStore(RECORDS_STORE, {
 					keyPath: "id",
 					autoIncrement: true,
 				});
@@ -633,5 +583,4 @@ export {
 	getCollectionOrAll,
 	deleteCollection,
 	getAllIndexedDBs,
-	initializeDatabase,
 };

@@ -30,7 +30,7 @@ export const asideTemplate = () => {
     const asideHeader = document.createElement("div");
     asideHeader.classList.add("aside-header", "sidebar-header");
     asideHeader.innerHTML = `
-        <button id="library-home-btn" class="page-mgr-btn" data-page='home'>Home</button>
+        <button id="library-home-btn" class="page-mgr-btn" data-page='library'>Home</button>
         <button class="page-mgr-btn library-collection-icon-btn"  data-page='collections'>
             <i class="fa-solid fa-object-group"></i>
         </button>

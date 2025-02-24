@@ -2,7 +2,7 @@ import {
 	openDB, addGame, getGame, getAllGames,
 	addOrUpdateCollection, getCollectionOrAll, deleteCollection,
 	addOrUpdateSource, getAllSources,
-	getAllIndexedDBs, initializeDatabase
+	getAllIndexedDBs, indexedDBPromise
 } from "../db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
@@ -74,16 +74,38 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				});
 			return true;
 		case "addLibrary":
-			initializeDatabase(request.name).then((library) => {
-				console.log(library);
-				sendResponse(library);
+			console.log("bg.js: Action: addLibrary - processing request:", request);
+			indexedDBPromise(request.name, request.version, request.data)
+			.then(db => {
+				console.log(`Database "${request.name}" opened successfully.`);
+				console.log(db);
+				sendResponse({
+					success: true,
+					message: `Database "${request.name}" opened successfully. ${db.name} - ${db.version}`,
+				});
+				db.close();
 			})
-			.catch((error) => {
-				console.error("Error adding library:", error);
-				sendResponse({ error: "Error adding library" });
-			})
+			.catch(error => {
+				console.error("Error opening database:", error);
+				sendResponse({ success: false, message: `Failed to open database "${request.name}". Error: ${error.message}` });
+			});
+			return true;
+		case "getLibrary":
+			console.log("bg.js: Action: getLibrary - processing request:", request);
+			break
+		case "getSources":
+			getAllSources()
+				.then((sources) => {
+					sendResponse(sources);
+				})
+				.catch((error) => {
+					console.error("Error getting sources:", error);
+					sendResponse({ error: "Error loading sources" });
+				})
+			return true;
 		default:
 			console.log("Unknown action:", request.action);
+		//return false; // Indicate no response for unknown actions
 	}
 
 	if (request.action === "checkUrl") {
@@ -110,6 +132,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.action === "getAllGames") {
 		getAllGames()
 			.then((games) => {
+				console.log("Games retrieved successfully:", games);
 				sendResponse({ games });
 			})
 			.catch((error) => {

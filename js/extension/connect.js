@@ -22,6 +22,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 							pattern: source["matches"],
 						},
 						(response) => {
+							console.log(tab)
 							if (response) {
 								let data = {};
 								for (const [key, value] of Object.entries(
