@@ -1,5 +1,5 @@
 import {
-	openDB, addGame, getGame, getAllGames,
+	openDB, addRecord, getRecord, getAllRecords,
 	addOrUpdateCollection, getCollectionOrAll, deleteCollection,
 	addOrUpdateSource, getAllSources,
 	getAllIndexedDBs, indexedDBPromise
@@ -51,6 +51,11 @@ browser.pageAction.onClicked.addListener((tab) => {
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 	switch (request.action) {
+		case "checkUrl":
+			const result = doesUrlMatchPattern(request.url, request.pattern);
+			console.log(result, request.url, request.pattern);
+			sendResponse(result);
+			return true
 		case "getSettings":
 			browser.storage.local
 				.get("settings")
@@ -103,23 +108,66 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 					sendResponse({ error: "Error loading sources" });
 				})
 			return true;
+		case "addSource":
+			fetchGistCode(request.gistId).then((result) => {
+				if (result) {
+					const { fileName, code } = result;
+					let parsedCode;
+					try {
+						parsedCode = JSON.parse(code);
+					} catch (error) {
+						console.error("Error parsing code:", error);
+						return;
+					}
+					addOrUpdateSource(parsedCode);
+					// Check if parsedCode already exists in sources
+					browser.storage.local
+						.get("sources")
+						.then((data) => {
+							const sources = data.sources || [];
+							const existingCode = sources.find(
+								(source) =>
+									JSON.stringify(source) === JSON.stringify(parsedCode)
+							);
+							if (!existingCode) {
+								sources.push(parsedCode);
+								browser.storage.local
+									.set({ sources })
+									.then(() => {
+										console.log("Code appended to sources array.");
+										browser.runtime.reload();
+										sendResponse({
+											length: sources.length,
+											code: parsedCode,
+										});
+									})
+									.catch((error) => {
+										console.error(
+											"Error storing code in extension storage:",
+											error
+										);
+									});
+							} else {
+								console.log("Code already exists in sources.");
+							}
+						})
+						.catch((error) =>
+							console.error("Error Fetching Saved Sources:", error)
+						);
+				}
+			});
+			break;
 		default:
 			console.log("Unknown action:", request.action);
 		//return false; // Indicate no response for unknown actions
 	}
 
-	if (request.action === "checkUrl") {
-		const result = doesUrlMatchPattern(request.url, request.pattern);
-		console.log(request.url, request.pattern);
-		sendResponse(result);
-	}
-
-	if (request.action === "addGame") {
+	if (request.action === "addRecord") {
 		const gameInfo = request.data;
 
-		// Assuming addGame is asynchronous (e.g., a promise), we should return true to keep the message channel open.
-		addGame(sortObjectKeys(gameInfo))
-			.then(() => {
+		// Assuming addRecord is asynchronous (e.g., a promise), we should return true to keep the message channel open.
+		addRecord(sortObjectKeys(gameInfo))
+			.then((response) => {
 				console.log("Game added successfully:", gameInfo);
 				sendResponse({ success: true });
 			})
@@ -130,7 +178,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 
 	if (request.action === "getAllGames") {
-		getAllGames()
+		getAllRecords()
 			.then((games) => {
 				console.log("Games retrieved successfully:", games);
 				sendResponse({ games });
@@ -142,7 +190,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 
 	if (request.action === "getGame") {
-		getGame(request.name)
+		getRecord(request.name)
 			.then((game) => {
 				sendResponse(game);
 			})
@@ -150,55 +198,6 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				console.error("Error retrieving game:", error);
 				sendResponse({ error: "Failed to retrieve game" });
 			});
-	}
-
-	if (request.action === "addSource") {
-		fetchGistCode(request.gistId).then((result) => {
-			if (result) {
-				const { fileName, code } = result;
-				let parsedCode;
-				try {
-					parsedCode = JSON.parse(code);
-				} catch (error) {
-					console.error("Error parsing code:", error);
-					return;
-				}
-				addOrUpdateSource(parsedCode);
-				// Check if parsedCode already exists in sources
-				browser.storage.local
-					.get("sources")
-					.then((data) => {
-						const sources = data.sources || [];
-						const existingCode = sources.find(
-							(source) => JSON.stringify(source) === JSON.stringify(parsedCode)
-						);
-						if (!existingCode) {
-							sources.push(parsedCode);
-							browser.storage.local
-								.set({ sources })
-								.then(() => {
-									console.log("Code appended to sources array.");
-									browser.runtime.reload();
-									sendResponse({
-										length: sources.length,
-										code: parsedCode,
-									});
-								})
-								.catch((error) => {
-									console.error(
-										"Error storing code in extension storage:",
-										error
-									);
-								});
-						} else {
-							console.log("Code already exists in sources.");
-						}
-					})
-					.catch((error) =>
-						console.error("Error Fetching Saved Sources:", error)
-					);
-			}
-		});
 	}
 
 	if (request.action === "addOrUpdateCollection") {

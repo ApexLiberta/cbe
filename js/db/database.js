@@ -14,23 +14,6 @@ const gamesDb = {
 	name: "games",
 	version: 1,
 }
-const comicsDb = {
-	name: "games",
-	version: 1,
-};
-
-//const dbName = "connect";
-const dbName = "library";
-const dbVersion = 1;
-
-let db;
-const gamesStore = "games";
-const objectStoreName = gamesStore;
-
-const sourcesStore = "sources"
-
-
-
 async function getAllIndexedDBs() {
 	try {
 		const dbs = await indexedDB.databases();
@@ -113,6 +96,7 @@ function openDB() {
 				store.createIndex("developers", "developers", { multiEntry: true, });
 				store.createIndex("publishers", "publishers", { multiEntry: true, });
 				store.createIndex("categories", "categories", { multiEntry: true, });
+				store.createIndex("collections", "collections", { multiEntry: true, });
 				store.createIndex("genres", "genres", { multiEntry: true, });
 				store.createIndex("features", "features", { multiEntry: true, });
 				store.createIndex("tags", "tags", { multiEntry: true });
@@ -204,13 +188,13 @@ function openDB() {
 }
 
 // Adding a Game
-const addGame = async (game) => {
-	game = sortObjectKeys(game)
-	console.log('sorted', game)
+const addRecord = async (game) => {
+	game = sortObjectKeys(game);
+	console.log('sorted', game);
 	try {
 		const db = await openDB();
-		const tx = db.transaction(objectStoreName, "readwrite");
-		const store = tx.objectStore(objectStoreName);
+		const tx = db.transaction(RECORDS_STORE, "readwrite");
+		const store = tx.objectStore(RECORDS_STORE);
 		const index = store.index("name");
 		const request = index.getAll(game.name);
 		const result = await new Promise((resolve, reject) => {
@@ -218,39 +202,53 @@ const addGame = async (game) => {
 			request.onerror = (event) => reject(event.target.error);
 		});
 		if (result.length <= 0) {
+			if (!game.collections || game.collections.length === 0) {
+				game.collections = ["uncategorized"];
+				addOrUpdateCollection("uncategorized", {
+					inSidebar: true,
+					isDynamic: false,
+					records: [game.name],
+				});
+			}
 			try {
 				await store.put({ ...game });
 				console.log("Game added successfully");
 			} catch (error) {
 				console.error("Error adding game:", error);
-				// Handle add error (e.g., reject a promise)
 			}
 		} else {
 			const updatedGame = { ...result[0], ...game };
+			if (!updatedGame.collections || updatedGame.collections.length === 0) {
+				updatedGame.collections = ["uncategorized"];
+				addOrUpdateCollection("uncategorized", {
+					inSidebar: true,
+					isDynamic: false,
+					records: [game.name]
+				});
+			}
 			console.log(findDifferences(game, result[0]));
 			for (const key in game) {
-				console.log(key)
+				console.log(key);
 			}
 			try {
 				await store.put(sortObjectKeys(updatedGame));
 				console.log("Game updated successfully");
 			} catch (error) {
 				console.error("Error updating game:", error);
-				// Handle update error (e.g., reject a promise)
 			}
 		}
 
 		return tx.complete;
 	} catch (error) {
-		console.error("Error adding game:", error); // Handle overall error (e.g., reject a promise)
+		console.error("Error adding game:", error);
 	}
 };
 
-const getGame = async (name) => {
+const getRecord = async (name) => {
 	try {
 		const db = await openDB();
-		const tx = db.transaction(objectStoreName, "readonly");
-		const store = tx.objectStore(objectStoreName);
+		const tx = db.transaction(RECORDS_STORE, "readonly");
+		const store = tx.objectStore(RECORDS_STORE);
 		const index = store.index("name"); // Assuming the index exists
 
 		const request = index.get(name);
@@ -262,18 +260,16 @@ const getGame = async (name) => {
 		return result;
 	} catch (error) {
 		console.error("Error getting game by name:", error);
-		// Handle error (e.g., return null or throw an exception)
 	}
 };
-// Get all games from the IndexedDB database
-const getAllGames = async () => {
+const getAllRecords = async () => {
 	try {
 		const db = await openDB();
-		const tx = db.transaction(objectStoreName, "readonly");
-		const store = tx.objectStore(objectStoreName);
+		const tx = db.transaction(RECORDS_STORE, "readonly");
+		const store = tx.objectStore(RECORDS_STORE);
 
 		const request = store.getAll();
-		console.log(request)
+		console.log(request);
 		return new Promise((resolve, reject) => {
 			request.onsuccess = (event) => {
 				resolve(event.target.result);
@@ -287,12 +283,11 @@ const getAllGames = async () => {
 	}
 };
 
-// Get the total number of games in the database
-const getTotalGames = async () => {
+const getTotalRecords = async () => {
 	try {
 		const db = await openDB();
-		const tx = db.transaction(objectStoreName, "readonly");
-		const store = tx.objectStore(objectStoreName);
+		const tx = db.transaction(RECORDS_STORE, "readonly");
+		const store = tx.objectStore(RECORDS_STORE);
 
 		const request = store.getAll();
 		return new Promise((resolve, reject) => {
@@ -571,9 +566,9 @@ async function deleteCollection(collectionName) {
 
 export {
 	openDB,
-	addGame,
-	getAllGames,
-	getGame,
+	addRecord,
+	getRecord,
+	getAllRecords,
 	exportIndexedDB,
 	addOrUpdateSource,
 	getSourceById,

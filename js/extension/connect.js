@@ -1,13 +1,3 @@
-
-/*
-let processedData = {};
-for (const [key, value] of Object.entries(testData)) {
-	let result = processElements(key, value["selector"], value["type"]);
-	//console.log(result)
-	processedData[key] = result;
-}
-*/
-
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.action === "pageActionClick") {
 		const getSrcs = browser.storage.local.get("sources");
@@ -22,7 +12,6 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 							pattern: source["matches"],
 						},
 						(response) => {
-							console.log(tab)
 							if (response) {
 								let data = {};
 								for (const [key, value] of Object.entries(
@@ -44,7 +33,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 								if (data) {
 									data["source"] = source.name;
 									console.log(data)
-									browser.runtime.sendMessage({ action: "addGame", data });
+									browser.runtime.sendMessage({ action: "addRecord", data });
 								} else {
 									console.warn("Failed to retrieve game information.");
 								}

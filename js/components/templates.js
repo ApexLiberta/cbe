@@ -68,3 +68,50 @@ export const asideTemplate = () => {
     aside.append(asideHeader, searchCont, collectionCont);
     return aside
 }
+
+export const shelfTemplate = () => {
+	return `
+        <div class="shelfs">
+            <button class="add-shelf">Add shelf</button>
+        </div>
+        <div class="game-library">
+            <div class="shelf-cont">
+                <div class="shelf-header">
+                    <div class="select-shelf">
+                        <button class="select-shelf-btn">
+                            <span class="name">steam</span>
+                            <span class="count">( 12 )</span>
+                        </button>
+                    </div>
+                    <div class="sort-cont">
+                        <span class="name">sort by</span>
+                        <button class="select-sort">
+                            alphabetical
+                        </button>
+                    </div>
+                </div>
+                <div class="shelf-body">
+                    <div class="game-container">
+                        <div id="game-list">
+                            <div class="game-item">
+                                <h3 class="name">Atlas Fallen: Reign Of Sand</h3>
+                                <p class="source">steam</p>
+                                <button class="edit_lib_entry">Edit</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--
+            <div class="playnite-container">
+                <div class="playnite-title">Playnite (13)</div>
+                <div class="sort-by-container">
+                    <select class="sort-by-dropdown">
+                        <option value="alphabetical">Alphabetical</option>
+                    </select>
+                </div>
+            </div>
+            -->
+        </div>
+    `;
+};

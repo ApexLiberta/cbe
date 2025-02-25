@@ -8,7 +8,7 @@ import {
 	confirmationDialog,
 } from "./components/dialog.js";
 import { createSettingElement } from "./components/settings.js";
-import { asideTemplate } from "./components/templates.js";
+import { asideTemplate, shelfTemplate } from "./components/templates.js";
 
 
 // REVIEW Constants for page names
@@ -16,7 +16,7 @@ const PAGE_HOME = "home";
 const PAGE_LIBRARY = "library";
 const PAGE_COLLECTIONS = "collections";
 const PAGE_COLLECTION = "collection";
-const PAGE_GAME = "game";
+const PAGE_RECORD = "record";
 const PAGE_SETTINGS = "settings";
 
 // Constants for action names
@@ -73,7 +73,9 @@ toggleLibrary.addEventListener("click", () => {
 		h2.classList.toggle("active");
 	});
 	const activeText = heroNav.querySelector(".active").textContent;
+	document.querySelector("#settings-trigger").classList.remove("active")
 	activeText == "connect" ? libraryMgr(PAGE_HOME) : libraryMgr(PAGE_LIBRARY);
+	activeText == "connect" ? heroNav.dataset.active = PAGE_HOME : heroNav.dataset.active = PAGE_LIBRARY;
 })
 
 
@@ -140,9 +142,9 @@ function initializeEvents() {
 }
 
 
-const aside = asideTemplate();
 
 function loadAsideCollections() {
+	const aside = asideTemplate();
 	aside.querySelectorAll(".page-mgr-btn").forEach((btn) => {
 		btn.addEventListener("click", () => {
 			libraryMgr(btn.dataset.page);
@@ -155,8 +157,8 @@ function loadAsideCollections() {
 			console.log("Received collections:", response.collections);
 			aside.querySelector(".collections-cont").innerHTML = ``;
 			response.collections.forEach((collection) => {
-				//if (collection.inSidebar && collection.games){
-				if (collection.inSidebar) {
+				//if (collection.inSidebar) {
+				if (collection.inSidebar && collection.records){
 					const collectionElement = document.createElement("div");
 					collectionElement.className = "collection";
 
@@ -205,6 +207,7 @@ function loadAsideCollections() {
 			});
 		}
 	});
+	return aside
 }
 
 let libraryContent;
@@ -213,14 +216,16 @@ function libraryMgr(page, data) {
 	let newUrl;
 	if(page !== PAGE_HOME){
 		console.log(page !== PAGE_HOME, page, PAGE_HOME);
-		isBrowserEnvironment() ? loadAsideCollections() : false;
-		document.querySelector(".library-container").prepend(aside);
+		const mainTag = document.querySelector(".library-container")
+		mainTag.innerHTML = ``;
 		const mainSection = document.createElement("section")
 		mainSection.classList.add("library-content");
-		document.querySelector(".library-container").appendChild(mainSection);
+		const aside = loadAsideCollections();;
+		mainTag.append(aside, mainSection);
 		libraryContent = document.querySelector(".library-content");
 
 	}
+	const activePage = document.querySelector(".hero-nav").dataset.active;
 	switch (page) {
 		case PAGE_HOME:
 			//document.querySelector(".library-content").innerHTML = ``;
@@ -230,51 +235,7 @@ function libraryMgr(page, data) {
 		case PAGE_LIBRARY:
 			newUrl = "/";
 			homeButton.classList.toggle("active");
-			libraryContent.innerHTML = `
-
-				<div class="shelfs">
-					<button class="add-shelf">Add shelf</button>
-				</div>
-				<div class="game-library">
-					<div class="shelf-cont">
-						<div class="shelf-header">
-							<div class="select-shelf">
-								<button class="select-shelf-btn">
-									<span class="name">steam</span>
-									<span class="count">( 12 )</span>
-								</button>
-							</div>
-							<div class="sort-cont">
-								<span class="name">sort by</span>
-								<button class="select-sort">
-									alphabetical
-								</button>
-							</div>
-						</div>
-						<div class="shelf-body">
-							<div class="game-container">
-								<div id="game-list">
-									<div class="game-item">
-										<h3 class="name">Atlas Fallen: Reign Of Sand</h3>
-										<p class="source">steam</p>
-										<button class="edit_lib_entry">Edit</button>
-									</div>
-								</div>
-							</div>
-
-						</div>
-					</div>
-					<!--
-					<div class="playnite-container">
-						<div class="playnite-title">Playnite (13)</div>
-						<div class="sort-by-container">
-							<select class="sort-by-dropdown">
-								<option value="alphabetical">Alphabetical</option>
-							</select>
-						</div>
-					</div>
-					-->
-				</div>`;
+			libraryContent.innerHTML = shelfTemplate();
 			//libraryContent.prepend(getShelfHtml({ name: "coll", count: 3 }));
 			libraryContent.prepend(getHomePageHtml());
 
@@ -300,7 +261,7 @@ function libraryMgr(page, data) {
 				} else {
 					console.log("Received games:", response);
 					const gameList = document.getElementById("game-list");
-					if (gameList) {
+					if (gameList && response.games) {
 						gameList.innerHTML = ""; // Clear existing games
 						response.games.forEach((game) => {
 							const gameItem = document.createElement("div");
@@ -318,12 +279,41 @@ function libraryMgr(page, data) {
 					//NOTE - async Click
 					gameItems.forEach((item) => {
 						item.addEventListener("click", async () => {
-							libraryMgr(PAGE_GAME, item.querySelector("h3").innerText);
+							libraryMgr(PAGE_RECORD, item.querySelector("h3").innerText);
 						});
 					});
 				}
 			});
 			console.info(`${PAGE_LIBRARY} page loaded`);
+			break;
+		case PAGE_SETTINGS:
+			document.querySelector(".library-container").innerHTML = ``;
+			const asideTag = document.createElement("aside");
+			asideTag.classList.add("library-sidebar");
+			const contentSection = document.createElement("section");
+			document
+				.querySelector(".library-container")
+				.append(asideTag, contentSection);
+			if (activePage === PAGE_HOME) {
+			} else {
+				browser.runtime
+					.sendMessage({ action: "getSettings" })
+					.then((settings) => {
+						if (settings) {
+							logSettings(settings);
+							const settingsOl = document.createElement("ol");
+							for (const setting in settings) {
+								const listItem = document.createElement("li");
+								const settingBtn = document.createElement("button");
+								settingBtn.textContent = setting;
+								listItem.append(settingBtn);
+								settingsOl.appendChild(listItem);
+							}
+							asideTag.appendChild(settingsOl);
+						}
+					});
+			}
+			console.log(PAGE_SETTINGS);
 			break;
 		case PAGE_COLLECTIONS:
 			newUrl = "/collections";
@@ -425,7 +415,7 @@ function libraryMgr(page, data) {
 							collDataBtn.dataset.collection = collection.name;
 							collDataBtn.innerHTML = `
 								<h3>${collection.name || "Untitled Collection"}</h3>
-								<p>( ${collection.games ? collection.games.length : 0} )</p>
+								<p>( ${collection.records ? collection.records.length : 0} )</p>
 							`;
 							collectionContainer.appendChild(collDataBtn);
 							collDataBtn.addEventListener("click", (event) => {
@@ -445,6 +435,34 @@ function libraryMgr(page, data) {
 				return; // Or handle error as needed
 			}
 			const collectionSettings = [
+				{
+					name: "sources",
+					options: ["steam"],
+					default: "sources",
+					icon: '<i class="fa-solid fa-trash"></i>',
+					type: "button",
+				},
+				{
+					name: "sources",
+					options: ["steam"],
+					default: "sources",
+					icon: '<i class="fa-solid fa-trash"></i>',
+					type: "button",
+				},
+				{
+					name: "sources",
+					options: ["steam"],
+					default: "sources",
+					icon: '<i class="fa-solid fa-trash"></i>',
+					type: "button",
+				},
+				{
+					name: "sources",
+					options: ["steam"],
+					default: "sources",
+					icon: '<i class="fa-solid fa-trash"></i>',
+					type: "button",
+				},
 				{
 					name: "private",
 					options: [],
@@ -572,10 +590,9 @@ function libraryMgr(page, data) {
 
 			const lengthSpan = document.createElement("span");
 			lengthSpan.textContent = "( 0 )";
-
-			//data.games ? lengthSpan.textContent = `( ${data.games.length} )` : lengthSpan.textContent = `( 0 )`;
-			data.games
-				? (lengthSpan.textContent = `( ${data.games.length} )`)
+			//data.records ? lengthSpan.textContent = `( ${data.records.length} )` : lengthSpan.textContent = `( 0 )`;
+			data.records
+				? (lengthSpan.textContent = `( ${data.records.length} )`)
 				: (lengthSpan.textContent = ``);
 			collLabelCont.append(nameTag, renameBtn, lengthSpan);
 
@@ -729,14 +746,12 @@ function libraryMgr(page, data) {
 
 			const itemsDiv = document.createElement("div");
 			itemsDiv.id = "game-list";
-			itemsDiv.innerHTML = `
-				//data.gameIds.forEach(item => {
-				//	const cont =  document.createElement("div")
-				//	cont.classList.add("game-item");
-				//	cont.textContent = item
-				//	itemsDiv.append(cont)
-				//});
-			`;
+			data.records.forEach(item => {
+				const cont =  document.createElement("div")
+				cont.classList.add("game-item");
+				cont.textContent = item
+				itemsDiv.append(cont)
+			});
 
 			pageHeader.append(collLabelCont, filterBtn, settingBtn);
 			libraryContent.prepend(pageHeader, settingCont, itemsDiv);
@@ -744,14 +759,14 @@ function libraryMgr(page, data) {
 				`${data.name.toUpperCase() + " " + PAGE_COLLECTION} page loaded`
 			);
 			break;
-		case PAGE_GAME:
+		case PAGE_RECORD:
 			try {
 				fetchGameData(data)
 					.then((gameInfo) => {
 						//console.log("Received game:", gameInfo);
 						//gamePopup.style.display = "block";
 						libraryContent.innerHTML = ``;
-						libraryContent.dataset.page = PAGE_GAME;
+						libraryContent.dataset.page = PAGE_RECORD;
 
 						const bannerDiv = document.createElement("div");
 						bannerDiv.classList.add("banner");
@@ -957,17 +972,7 @@ function libraryMgr(page, data) {
 			} catch (error) {
 				console.error("Error fetching game data:", error);
 			}
-			console.info(`${PAGE_GAME} page loaded`, data);
-			break;
-		case PAGE_SETTINGS:
-			document.querySelector(".library-container").innerHTML = ``;
-			const asideTag = document.createElement("aside")
-			asideTag.classList.add("library-sidebar");
-			const contentSection = document.createElement("section")
-			document
-				.querySelector(".library-container")
-				.append(asideTag, contentSection);
-			console.log(PAGE_SETTINGS);
+			console.info(`${PAGE_RECORD} page loaded`, data);
 			break;
 		default:
 			break;
@@ -1356,7 +1361,7 @@ function fetchGameData(game) {
 function getHomePageHtml() {
 	const htmlBlock = document.createElement("div");
 	htmlBlock.classList.add("home-page");
-	htmlBlock.prepend(getWhatsNew());
+	//htmlBlock.prepend(getWhatsNew());
 	return htmlBlock;
 }
 
