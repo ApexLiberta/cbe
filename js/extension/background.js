@@ -4,6 +4,9 @@ import {
 	addOrUpdateSource, getAllSources,
 	getAllIndexedDBs, indexedDBPromise
 } from "../db/database.js";
+import {
+	addShelf, getShelfs
+} from "../db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
 (function () {
@@ -14,6 +17,9 @@ async function loadSettingsJson() {
 	const response = await fetch("/js/json/settings.json");
 	return await response.json();
 }
+
+//REVIEW - Delete
+browser.tabs.create({ url: "/index.html" });
 
 browser.runtime.onInstalled.addListener(() => {
 	browser.storage.local
@@ -55,7 +61,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			const result = doesUrlMatchPattern(request.url, request.pattern);
 			console.log(result, request.url, request.pattern);
 			sendResponse(result);
-			return true
+			return true;
 		case "getSettings":
 			browser.storage.local
 				.get("settings")
@@ -81,23 +87,26 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		case "addLibrary":
 			console.log("bg.js: Action: addLibrary - processing request:", request);
 			indexedDBPromise(request.name, request.version, request.data)
-			.then(db => {
-				console.log(`Database "${request.name}" opened successfully.`);
-				console.log(db);
-				sendResponse({
-					success: true,
-					message: `Database "${request.name}" opened successfully. ${db.name} - ${db.version}`,
+				.then((db) => {
+					console.log(`Database "${request.name}" opened successfully.`);
+					console.log(db);
+					sendResponse({
+						success: true,
+						message: `Database "${request.name}" opened successfully. ${db.name} - ${db.version}`,
+					});
+					db.close();
+				})
+				.catch((error) => {
+					console.error("Error opening database:", error);
+					sendResponse({
+						success: false,
+						message: `Failed to open database "${request.name}". Error: ${error.message}`,
+					});
 				});
-				db.close();
-			})
-			.catch(error => {
-				console.error("Error opening database:", error);
-				sendResponse({ success: false, message: `Failed to open database "${request.name}". Error: ${error.message}` });
-			});
 			return true;
 		case "getLibrary":
 			console.log("bg.js: Action: getLibrary - processing request:", request);
-			break
+			break;
 		case "getSources":
 			getAllSources()
 				.then((sources) => {
@@ -106,7 +115,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				.catch((error) => {
 					console.error("Error getting sources:", error);
 					sendResponse({ error: "Error loading sources" });
-				})
+				});
 			return true;
 		case "addSource":
 			fetchGistCode(request.gistId).then((result) => {
@@ -135,7 +144,13 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 									.set({ sources })
 									.then(() => {
 										console.log("Code appended to sources array.");
+										let extensionPageUrl = browser.runtime.getURL(
+											"moz-extension://f127ce6d-079c-4ce8-b770-d382fed89a24/index.html"
+										);
 										browser.runtime.reload();
+										if (extensionPageUrl) {
+											browser.tabs.create({ url: extensionPageUrl });
+										}
 										sendResponse({
 											length: sources.length,
 											code: parsedCode,
@@ -157,6 +172,49 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				}
 			});
 			break;
+		case "addOrUpdateCollection":
+			addOrUpdateCollection(request.name, request.data)
+				.then((returnData) => {
+					const mergedObject = {
+						...{ success: true },
+						...returnData,
+					};
+					sendResponse(mergedObject);
+				})
+				.catch((error) => {
+					sendResponse({ success: false, error: error.message });
+				});
+			break;
+		case "getCollectionOrAll":
+			getCollectionOrAll(request.name)
+				.then((collections) => {
+					sendResponse({ collections });
+				})
+				.catch((error) => {
+					console.error("Error in getCollectionOrAll:", error);
+				});
+			break;
+		case "getShelfs":
+			getShelfs()
+				.then((shelfs) => {
+					sendResponse({ shelfs });
+				})
+				.catch((error) => {
+					console.error("Error getting shelfs:", error);
+					sendResponse({ error: "Error loading shelfs" });
+				});
+			return true;
+		case "addShelf":
+			addShelf(request.data)
+				.then((shelf) => {
+					console.log("Shelf added successfully:", shelf);
+					sendResponse({ success: true, shelf });
+				})
+				.catch((error) => {
+					console.error("Error adding shelf:", error);
+					sendResponse({ success: false, error: error.message });
+				});
+			return true;
 		default:
 			console.log("Unknown action:", request.action);
 		//return false; // Indicate no response for unknown actions
@@ -177,7 +235,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			});
 	}
 
-	if (request.action === "getAllGames") {
+	if (request.action === "getRecords") {
 		getAllRecords()
 			.then((games) => {
 				console.log("Games retrieved successfully:", games);
@@ -200,28 +258,6 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			});
 	}
 
-	if (request.action === "addOrUpdateCollection") {
-		addOrUpdateCollection(request.name, request.data)
-			.then((returnData) => {
-				const mergedObject = {
-					...{ success: true },
-					...returnData,
-				};
-				sendResponse(mergedObject);
-			})
-			.catch((error) => {
-				sendResponse({ success: false, error: error.message });
-			});
-	}
-	if (request.action === "getAllCollections") {
-		getCollectionOrAll()
-			.then((collections) => {
-				sendResponse({ collections });
-			})
-			.catch((error) => {
-				console.error("Error in getAllCollections:", error);
-			});
-	}
 	if (request.action === "deleteCollection") {
 		deleteCollection(request.name)
 			.then(() => {

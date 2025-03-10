@@ -4,7 +4,7 @@ const RECORDS_STORE = "records";
 const COLLECTIONS_STORE = "collections";
 const SOURCES_STORE = "sources";
 const SHELFS_STORE = "shelfs";
-const FILTERS_STORE = "shelfs";
+const FILTERS_STORE = "filters";
 
 const NAME_INDEX = "name";
 const DESCRIPTION_INDEX = "description";
@@ -156,18 +156,26 @@ function openDB() {
 				store.createIndex("isHidden", "isHidden");
 				store.createIndex("inSidebar", "inSidebar");
 				store.createIndex("isPrivate", "isPrivate");
+				store.createIndex("beShelfed", "beShelfed");
 			}
 			if (!db.objectStoreNames.contains(SHELFS_STORE)) {
 				const store = db.createObjectStore(SHELFS_STORE, {
-					keyPath: "id", // Define a unique key path for sources
-					autoIncrement: true, // Optional: automatically generate IDs
+					keyPath: "id",
+					autoIncrement: true,
 				});
+				store.createIndex("name", "name", { unique: false });
+				store.createIndex("category", "category", { unique: false });
+				// categories -- collection, default
+				store.createIndex("type", "type", { unique: false });
+				// types -- collection, collections, timeline
 			}
 			if (!db.objectStoreNames.contains(FILTERS_STORE)) {
 				const store = db.createObjectStore(FILTERS_STORE, {
-					keyPath: "id", // Define a unique key path for sources
-					autoIncrement: true, // Optional: automatically generate IDs
+					keyPath: "id",
+					autoIncrement: true,
 				});
+				store.createIndex("name", "name", { unique: false });
+				store.createIndex("type", "type", { unique: false });
 			}
 		};
 
@@ -188,59 +196,70 @@ function openDB() {
 }
 
 // Adding a Game
-const addRecord = async (game) => {
-	game = sortObjectKeys(game);
-	console.log('sorted', game);
+const addRecord = async (record) => {
+	record = sortObjectKeys(record);
+	console.log('sorted', record);
 	try {
 		const db = await openDB();
-		const tx = db.transaction(RECORDS_STORE, "readwrite");
-		const store = tx.objectStore(RECORDS_STORE);
-		const index = store.index("name");
-		const request = index.getAll(game.name);
+		const tx = db.transaction([RECORDS_STORE, FILTERS_STORE], "readwrite");
+		const recordsStore = tx.objectStore(RECORDS_STORE);
+		const filtersStore = tx.objectStore(FILTERS_STORE);
+		//const collectionsStore = tx.objectStore(COLLECTIONS_STORE);
+
+		getCollectionOrAll().then(collections => {
+			const dynamicCollections = collections.filter(
+				(collection) => collection.isDynamic
+			);
+			console.log(collections, dynamicCollections)
+		})
+
+		console.log(filtersStore)
+		const index = recordsStore.index("name");
+		const request = index.getAll(record.name);
 		const result = await new Promise((resolve, reject) => {
 			request.onsuccess = (event) => resolve(event.target.result);
 			request.onerror = (event) => reject(event.target.error);
 		});
 		if (result.length <= 0) {
-			if (!game.collections || game.collections.length === 0) {
-				game.collections = ["uncategorized"];
+			if (!record.collections || record.collections.length === 0) {
+				record.collections = ["uncategorized"];
 				addOrUpdateCollection("uncategorized", {
 					inSidebar: true,
 					isDynamic: false,
-					records: [game.name],
+					records: [record.name],
 				});
 			}
 			try {
-				await store.put({ ...game });
+				await recordsStore.put({ ...record });
 				console.log("Game added successfully");
 			} catch (error) {
-				console.error("Error adding game:", error);
+				console.error("Error adding record:", error);
 			}
 		} else {
-			const updatedGame = { ...result[0], ...game };
+			const updatedGame = { ...result[0], ...record };
 			if (!updatedGame.collections || updatedGame.collections.length === 0) {
 				updatedGame.collections = ["uncategorized"];
 				addOrUpdateCollection("uncategorized", {
 					inSidebar: true,
 					isDynamic: false,
-					records: [game.name]
+					records: [record.name]
 				});
 			}
-			console.log(findDifferences(game, result[0]));
-			for (const key in game) {
+			console.log(findDifferences(record, result[0]));
+			for (const key in record) {
 				console.log(key);
 			}
 			try {
-				await store.put(sortObjectKeys(updatedGame));
+				await recordsStore.put(sortObjectKeys(updatedGame));
 				console.log("Game updated successfully");
 			} catch (error) {
-				console.error("Error updating game:", error);
+				console.error("Error updating record:", error);
 			}
 		}
 
 		return tx.complete;
 	} catch (error) {
-		console.error("Error adding game:", error);
+		console.error("Error adding record:", error);
 	}
 };
 
@@ -259,7 +278,7 @@ const getRecord = async (name) => {
 
 		return result;
 	} catch (error) {
-		console.error("Error getting game by name:", error);
+		console.error("Error getting record by name:", error);
 	}
 };
 const getAllRecords = async () => {
@@ -270,14 +289,11 @@ const getAllRecords = async () => {
 
 		const request = store.getAll();
 		console.log(request);
-		return new Promise((resolve, reject) => {
-			request.onsuccess = (event) => {
-				resolve(event.target.result);
-			};
-			request.onerror = (event) => {
-				reject(event.target.error);
-			};
+		const result = new Promise((resolve, reject) => {
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) => reject(event.target.error);
 		});
+		return result;
 	} catch (error) {
 		console.error("Error getting games:", error);
 	}
@@ -447,7 +463,42 @@ async function getAllSources() {
 		throw error;
 	}
 }
+export async function addShelf(shelfData) {
+    try {
+        const db = await openDB();
+        const transaction = db.transaction([SHELFS_STORE], "readwrite");
+        const store = transaction.objectStore(SHELFS_STORE);
 
+        const addRequest = store.add(shelfData);
+        return new Promise((resolve, reject) => {
+            addRequest.onsuccess = (event) => {
+                const returnObject = { ...shelfData, action: "created", id: event.target.result };
+                resolve({ shelf: returnObject });
+            };
+            addRequest.onerror = (event) => reject("Error adding shelf: " + event.target.errorCode);
+        });
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+
+export async function getShelfs() {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([SHELFS_STORE], "readonly");
+		const store = transaction.objectStore(SHELFS_STORE);
+		const request = store.getAll();
+
+		return new Promise((resolve, reject) => {
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) => reject("Error getting shelfs: " + event.target.errorCode);
+		});
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
+}
 
 //collection
 async function addOrUpdateCollection(name, data) {
@@ -466,12 +517,23 @@ async function addOrUpdateCollection(name, data) {
 				let resultData = null;
 				if (event.target.result) {
 					operation = "updated";
-					const updatedData = { ...event.target.result, ...data };
+					const updatedData = {
+						...event.target.result,
+						...data,
+						records: [
+							...(event.target.result.records || []),
+							...(data.records || []),
+						],
+					};
 					const putRequest = store.put(updatedData); // Use putRequest for promise handling
 
 					putRequest.onsuccess = (putEvent) => {
 						console.group("existingItem - Updated");
 						console.table(updatedData);
+						console.log("putEvent:", putEvent);
+						console.log("Updated item:", updatedData);
+						console.log("stored collection", event.target.result);
+						console.log("new collection data", data);
 						console.groupEnd();
 						resultData = updatedData; // Data after update
 					};
@@ -536,9 +598,9 @@ async function getCollectionOrAll(name) {
 		}
 
 		request.onsuccess = (event) => {
-			console.group("Collection(s) retrieved:");
-				console.table(event.target.result);
-			console.groupEnd();
+			//console.group("Collection(s) retrieved:");
+			//	console.table(event.target.result);
+			//console.groupEnd();
 			resolve(event.target.result); // Resolve with the result (either a single collection or an array of collections)
 		};
 
@@ -562,7 +624,33 @@ async function deleteCollection(collectionName) {
 	await transaction.complete;
 }
 
+export async function getCollectionsFromStore() {}
+export async function getFromStore(storeName, key = null) {
+    try {
+        const db = await openDB();
+        const transaction = db.transaction([storeName], "readonly");
+        const store = transaction.objectStore(storeName);
+        let request;
 
+        if (key) {
+            request = store.get(key);
+        } else {
+            request = store.getAll();
+        }
+
+        return new Promise((resolve, reject) => {
+            request.onsuccess = (event) => resolve(event.target.result);
+            request.onerror = (event) => reject("Error getting data: " + event.target.errorCode);
+        });
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+}
+// const source = await getFromStore(SOURCES_STORE, sourceId);
+// const allSources = await getFromStore(SOURCES_STORE);
+// const collection = await getFromStore(COLLECTIONS_STORE, collectionName);
+// const allCollections = await getFromStore(COLLECTIONS_STORE);
 
 export {
 	openDB,

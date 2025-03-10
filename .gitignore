@@ -1,5 +1,12 @@
 .vscode
-.tmp
+node_modules
+package.json
+package-lock.json
+
 @tmp
+.tmp
 assets/fonts/
 assets/fontawesome/
+
+tests
+playwright.config.ts
