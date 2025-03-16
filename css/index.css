@@ -342,6 +342,7 @@ a {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
+	gap: 12px;
 	margin: 12px 12px 12px 0;
 
 	.game-item {
@@ -350,7 +351,6 @@ a {
 		width: 200px;
 		aspect-ratio: 2 / 3;
 		background-color: #333c47;
-		margin-left: 24px;
 		margin-bottom: 12px;
 		border-radius: 12px;
 		padding: 12px;
@@ -992,19 +992,18 @@ a {
 		}
 
 		.collection-settings-cont {
-			height: 0px;
-			transition: .3s all ease-in-out;
+			height: fit-content;
+			display: grid;
 			grid-template-columns: repeat(auto-fill, minmax(250px, auto));
 			grid-template-columns: repeat(auto-fit, minmax(250px, auto));
 			grid-gap: clamp(10px, 2vw, 20px);
 			gap: clamp(10px, 2vw, 20px);
 			margin: 12px 0 12px 0;
-			display: none;
+			transition: .3s all ease-in-out;
 
-			/*overflow: hidden;*/
-			&.active {
-				display: grid;
-				height: fit-content;
+			&.hidden{
+				height: 0px;
+				display: none;
 			}
 
 			label {
@@ -1018,11 +1017,11 @@ a {
 	}
 }
 
-.btn-ctx-dropdown {
+.btn-ctx-dropdown, .dropdown-wrapper {
 	position: relative;
 
 	.dropdown-btn,
-	.dropdown-option {
+	.dropdown-option, .dropdown-button {
 		width: 100%;
 		font-size: 16px;
 		text-align: left;
@@ -1046,7 +1045,7 @@ a {
 		border-radius: 8px;
 	}
 
-	.dropdown-ctx {
+	.dropdown-ctx, .dropdown-menu {
 		position: absolute;
 		width: 100%;
 		min-height: 12px;
@@ -1066,6 +1065,16 @@ a {
 		&.active {
 			background-color: red;
 		}
+	}
+	.dropdown-menu{
+		display: none;
+	}
+	.dropdown-label{
+		text-transform: capitalize;
+		margin: 0 0 10px 0;
+		color: #7b8c90;
+		display: block;
+		font-size: 14px;
 	}
 }
 
@@ -1142,7 +1151,7 @@ a {
 	display: flex;
 }
 .shelfs-header{
-	margin: 0 0 12px 0;
+	margin: 0 0 18px 0;
 }
 .shelf-banner{
 	display: none;
@@ -1173,11 +1182,13 @@ a {
 	}
 }
 #record-list,
-.shelf-collection {
+.shelf-collection, .shelf-timeline {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
 	margin: 6px 12px 12px 0;
+	min-height: 200px;
+	/*min-height: 250px;*/
 	height: fit-content;
 
 	.record-item,
@@ -1186,7 +1197,7 @@ a {
 		width: 160px;
 		aspect-ratio: 2 / 3;
 		background-color: #333c47;
-		border-radius: 4px;
+		border-radius: 5px;
 		padding: 12px;
 		cursor: pointer;
 
@@ -1217,7 +1228,7 @@ a {
 			height: 100%;
 			aspect-ratio: 4/3.5;
 			padding: 12px;
-			border-radius: 4px;
+			border-radius: 5px;
 			background-color: #333c47a1;
 			cursor: pointer;
 
@@ -1229,6 +1240,27 @@ a {
 	&.shelf-collection{
 		background-color: transparent;
 		height: max-content;
+	}
+
+	&.shelf-timeline{
+		align-items: start;
+		background-color: transparent;
+		.timeline-group{
+			height: max-content;
+
+			button{
+				font-size: 16px;
+				text-transform: capitalize;
+				margin: 0 0 12px 0;
+			}
+			.records{
+				display: flex;
+				gap: 12px;
+			}
+		}
+	}
+
+	&.shelf-collection, &.shelf-timeline {
 		.shelf-item-record{
 			width: 150px;
 			height: 100%;
@@ -1896,15 +1928,18 @@ footer {
 	}
 }
 #addShelfBtn{
+	display: block;
 	font-size: 18px;
+	margin: auto;
 	padding: 8px 12px;
 }
 .shelf-cont {
 	width: 100%;
 	font-size: 18px;
 	margin: 0 0 12px 0;
-
-
+	border: 1px solid #333;
+	border-width: 1px 0 0 0;
+	padding: 6px 0 0 0;
 }
 .shelf-top {
 	display: flex;

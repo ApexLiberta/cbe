@@ -5,8 +5,12 @@ import {
 	getAllIndexedDBs, indexedDBPromise
 } from "../db/database.js";
 import {
-	addShelf, getShelfs
+	addShelf,
+	getShelfs,
+	deleteShelf,
+	getRecordsTimeline,
 } from "../db/database.js";
+import { getFromStore } from "../db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
 (function () {
@@ -213,6 +217,36 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				.catch((error) => {
 					console.error("Error adding shelf:", error);
 					sendResponse({ success: false, error: error.message });
+				});
+			return true;
+		case "deleteShelf":
+			deleteShelf(request.id)
+				.then(() => {
+					sendResponse({ success: true });
+				})
+				.catch((error) => {
+					console.error("Error deleting shelf:", error);
+					sendResponse({ success: false, error: error.message });
+				});
+			return true;
+		case "fetchTimeLine":
+			getRecordsTimeline()
+				.then((timeline) => {
+					sendResponse({ timeline });
+				})
+				.catch((error) => {
+					console.error("Error fetching timeline:", error);
+					sendResponse({ error: "Failed to fetch timeline" });
+				});
+			return true;
+		case "getFilters":
+			getFromStore("filters")
+				.then((filters) => {
+					sendResponse({ filters });
+				})
+				.catch((error) => {
+					console.error("Error getting filters:", error);
+					sendResponse({ error: "Error loading filters" });
 				});
 			return true;
 		default:

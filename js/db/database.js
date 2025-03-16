@@ -1,19 +1,24 @@
-import { sortObjectKeys, findDifferences } from "../extension/modules/helpers.js";
+import {
+	sortObjectKeys,
+	findDifferences,
+} from "../extension/modules/helpers.js";
 
 const RECORDS_STORE = "records";
 const COLLECTIONS_STORE = "collections";
 const SOURCES_STORE = "sources";
 const SHELFS_STORE = "shelfs";
 const FILTERS_STORE = "filters";
+const GENRES_STORE = "genres";
+const TAGS_STORE = "tags";
+const FEATURES_STORE = "features";
 
 const NAME_INDEX = "name";
 const DESCRIPTION_INDEX = "description";
 
-
 const gamesDb = {
 	name: "games",
 	version: 1,
-}
+};
 async function getAllIndexedDBs() {
 	try {
 		const dbs = await indexedDB.databases();
@@ -24,7 +29,6 @@ async function getAllIndexedDBs() {
 		return [];
 	}
 }
-
 
 //getAllIndexedDBs().then((databaseNames) => {
 //	console.log("IndexedDB Databases:", databaseNames);
@@ -44,10 +48,9 @@ async function getAllIndexedDBs() {
 //		console.log("No IndexedDB databases found.");
 //	}
 //});
-console.log("indexedDB")
+console.log("indexedDB");
 export function indexedDBPromise(dbName, version, action) {
 	return new Promise((resolve, reject) => {
-
 		//if (!dbName || !version || !action) {
 		//	const errorMessage =
 		//		"Database name, version, and object store name are required.";
@@ -67,14 +70,14 @@ export function indexedDBPromise(dbName, version, action) {
 		};
 		request.onupgradeneeded = (event) => {
 			const db = event.target.result;
-			db.createObjectStore(action.objectStoreName, { keyPath: "id", autoIncrement: true });
+			db.createObjectStore(action.objectStoreName, {
+				keyPath: "id",
+				autoIncrement: true,
+			});
 		};
 		request.onsuccess = (event) => resolve(event.target.result);
 	});
-
 }
-
-
 
 function openDB() {
 	return new Promise((resolve, reject) => {
@@ -82,7 +85,7 @@ function openDB() {
 
 		request.onupgradeneeded = (event) => {
 			const db = event.target.result;
-			console.log(db)
+			console.log(db);
 
 			// Assuming you have a database object named `db` and a store name `gamesStore`
 			if (!db.objectStoreNames.contains(RECORDS_STORE)) {
@@ -92,20 +95,31 @@ function openDB() {
 				});
 				store.createIndex("name", "name", { unique: true });
 				store.createIndex("description", "description");
-				store.createIndex("platform", "platform", { multiEntry: true, });
-				store.createIndex("developers", "developers", { multiEntry: true, });
-				store.createIndex("publishers", "publishers", { multiEntry: true, });
-				store.createIndex("categories", "categories", { multiEntry: true, });
-				store.createIndex("collections", "collections", { multiEntry: true, });
-				store.createIndex("genres", "genres", { multiEntry: true, });
-				store.createIndex("features", "features", { multiEntry: true, });
+				store.createIndex("platform", "platform", { multiEntry: true });
+				store.createIndex("developers", "developers", { multiEntry: true });
+				store.createIndex("publishers", "publishers", { multiEntry: true });
+				store.createIndex("categories", "categories", { multiEntry: true });
+				store.createIndex("collections", "collections", { multiEntry: true });
+				store.createIndex("genres", "genres", { multiEntry: true });
+				store.createIndex("features", "features", { multiEntry: true });
 				store.createIndex("tags", "tags", { multiEntry: true });
 				store.createIndex("releaseDate", "releaseDate");
+				store.createIndex("addedDate", "addedDate");
+				store.createIndex("modifiedDate", "modifiedDate");
+				store.createIndex("updatedDate", "updatedDate");
+				store.createIndex("status", "status");
+				store.createIndex("playedTime", "playedTime");
+				store.createIndex("completionTime", "completionTime");
+				store.createIndex("completionDate", "completionDate");
+				store.createIndex("completionStatus", "completionStatus");
+				store.createIndex("playedDate", "playedDate");
+				store.createIndex("completedDate", "completedDate");
+				store.createIndex("rating", "rating");
+				store.createIndex("franchise", "franchise");
 				store.createIndex("series", "series");
 				store.createIndex("ageRating", "ageRating");
 				store.createIndex("region", "region");
 				store.createIndex("source", "source", { multiEntry: true });
-				store.createIndex("completionStatus", "completionStatus");
 				store.createIndex("userScore", "userScore");
 				store.createIndex("criticScore", "criticScore");
 				store.createIndex("communityScore", "communityScore");
@@ -177,6 +191,27 @@ function openDB() {
 				store.createIndex("name", "name", { unique: false });
 				store.createIndex("type", "type", { unique: false });
 			}
+			// Create genres object store
+			//if (!db.objectStoreNames.contains(GENRES_STORE)) {
+			//	const genresStore = db.createObjectStore(GENRES_STORE, {
+			//		keyPath: "value",
+			//	}); // Key is the genre value
+			//	genresStore.createIndex("value", "value", { unique: true }); // Ensure unique genres
+			//}
+
+			//// Create tags object store
+			//if (!db.objectStoreNames.contains(TAGS_STORE)) {
+			//	const tagsStore = db.createObjectStore(TAGS_STORE, { keyPath: "value" }); // Key is the tag value
+			//	tagsStore.createIndex("value", "value", { unique: true }); // Ensure unique tags
+			//}
+
+			//// Create features object store
+			//if (!db.objectStoreNames.contains(FEATURES_STORE)) {
+			//	const featuresStore = db.createObjectStore(FEATURES_STORE, {
+			//		keyPath: "value",
+			//	}); // Key is the feature value
+			//	featuresStore.createIndex("value", "value", { unique: true }); // Ensure unique features
+			//}
 		};
 
 		request.onsuccess = (event) => {
@@ -198,22 +233,21 @@ function openDB() {
 // Adding a Game
 const addRecord = async (record) => {
 	record = sortObjectKeys(record);
-	console.log('sorted', record);
+	console.log("sorted", record);
 	try {
 		const db = await openDB();
 		const tx = db.transaction([RECORDS_STORE, FILTERS_STORE], "readwrite");
 		const recordsStore = tx.objectStore(RECORDS_STORE);
 		const filtersStore = tx.objectStore(FILTERS_STORE);
-		//const collectionsStore = tx.objectStore(COLLECTIONS_STORE);
 
-		getCollectionOrAll().then(collections => {
+		getCollectionOrAll().then((collections) => {
 			const dynamicCollections = collections.filter(
 				(collection) => collection.isDynamic
 			);
-			console.log(collections, dynamicCollections)
-		})
+			console.log(collections, dynamicCollections);
+		});
 
-		console.log(filtersStore)
+		console.log(filtersStore);
 		const index = recordsStore.index("name");
 		const request = index.getAll(record.name);
 		const result = await new Promise((resolve, reject) => {
@@ -230,6 +264,10 @@ const addRecord = async (record) => {
 				});
 			}
 			try {
+				record.addedDate = new Date().toISOString();
+				record.releaseDate = record.releaseDate
+					? new Date(record.releaseDate).toISOString()
+					: null;
 				await recordsStore.put({ ...record });
 				console.log("Game added successfully");
 			} catch (error) {
@@ -242,7 +280,7 @@ const addRecord = async (record) => {
 				addOrUpdateCollection("uncategorized", {
 					inSidebar: true,
 					isDynamic: false,
-					records: [record.name]
+					records: [record.name],
 				});
 			}
 			console.log(findDifferences(record, result[0]));
@@ -255,6 +293,30 @@ const addRecord = async (record) => {
 			} catch (error) {
 				console.error("Error updating record:", error);
 			}
+		}
+
+		// Add genres, tags, and features to filters
+		const addToFilters = async (items, type) => {
+			for (const item of items) {
+				const request = filtersStore.get(item);
+				const result = await new Promise((resolve, reject) => {
+					request.onsuccess = (event) => resolve(event.target.result);
+					request.onerror = (event) => reject(event.target.error);
+				});
+				if (!result) {
+					await filtersStore.add({ name: item, type });
+				}
+			}
+		};
+
+		if (record.genres) {
+			await addToFilters(record.genres, "genre");
+		}
+		if (record.tags) {
+			await addToFilters(record.tags, "tag");
+		}
+		if (record.features) {
+			await addToFilters(record.features, "feature");
 		}
 
 		return tx.complete;
@@ -286,9 +348,7 @@ const getAllRecords = async () => {
 		const db = await openDB();
 		const tx = db.transaction(RECORDS_STORE, "readonly");
 		const store = tx.objectStore(RECORDS_STORE);
-
 		const request = store.getAll();
-		console.log(request);
 		const result = new Promise((resolve, reject) => {
 			request.onsuccess = (event) => resolve(event.target.result);
 			request.onerror = (event) => reject(event.target.error);
@@ -365,7 +425,6 @@ function exportIndexedDB() {
 	};
 }
 
-
 // Sources
 async function addOrUpdateSource(sourceData) {
 	try {
@@ -396,7 +455,11 @@ async function addOrUpdateSource(sourceData) {
 							const updateRequest = store.put(sourceData);
 
 							updateRequest.onsuccess = () =>
-								resolve({ action: "updated", id: existingSourceByName.id, source: sourceData });
+								resolve({
+									action: "updated",
+									id: existingSourceByName.id,
+									source: sourceData,
+								});
 							updateRequest.onerror = (event) =>
 								reject("Error updating source: " + event.target.errorCode);
 						} else {
@@ -414,7 +477,11 @@ async function addOrUpdateSource(sourceData) {
 					// No source with the same name exists: CREATE
 					const addRequest = store.add(sourceData);
 					addRequest.onsuccess = (event) =>
-						resolve({ action: "created", id: event.target.result, source: sourceData });
+						resolve({
+							action: "created",
+							id: event.target.result,
+							source: sourceData,
+						});
 					addRequest.onerror = (event) =>
 						reject("Error adding source: " + event.target.errorCode);
 				}
@@ -464,23 +531,28 @@ async function getAllSources() {
 	}
 }
 export async function addShelf(shelfData) {
-    try {
-        const db = await openDB();
-        const transaction = db.transaction([SHELFS_STORE], "readwrite");
-        const store = transaction.objectStore(SHELFS_STORE);
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([SHELFS_STORE], "readwrite");
+		const store = transaction.objectStore(SHELFS_STORE);
 
-        const addRequest = store.add(shelfData);
-        return new Promise((resolve, reject) => {
-            addRequest.onsuccess = (event) => {
-                const returnObject = { ...shelfData, action: "created", id: event.target.result };
-                resolve({ shelf: returnObject });
-            };
-            addRequest.onerror = (event) => reject("Error adding shelf: " + event.target.errorCode);
-        });
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
+		const addRequest = store.add(shelfData);
+		return new Promise((resolve, reject) => {
+			addRequest.onsuccess = (event) => {
+				const returnObject = {
+					...shelfData,
+					action: "created",
+					id: event.target.result,
+				};
+				resolve({ shelf: returnObject });
+			};
+			addRequest.onerror = (event) =>
+				reject("Error adding shelf: " + event.target.errorCode);
+		});
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
 }
 
 export async function getShelfs() {
@@ -492,14 +564,31 @@ export async function getShelfs() {
 
 		return new Promise((resolve, reject) => {
 			request.onsuccess = (event) => resolve(event.target.result);
-			request.onerror = (event) => reject("Error getting shelfs: " + event.target.errorCode);
+			request.onerror = (event) =>
+				reject("Error getting shelfs: " + event.target.errorCode);
 		});
 	} catch (error) {
 		console.error(error);
 		throw error;
 	}
 }
+export async function deleteShelf(shelfId) {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([SHELFS_STORE], "readwrite");
+		const store = transaction.objectStore(SHELFS_STORE);
+		const request = store.delete(shelfId);
 
+		return new Promise((resolve, reject) => {
+			request.onsuccess = () => resolve();
+			request.onerror = (event) =>
+				reject("Error deleting shelf: " + event.target.errorCode);
+		});
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
+}
 //collection
 async function addOrUpdateCollection(name, data) {
 	return new Promise(async (resolve, reject) => {
@@ -612,45 +701,144 @@ async function getCollectionOrAll(name) {
 }
 async function deleteCollection(collectionName) {
 	const db = await openDB();
-	const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
-	const store = transaction.objectStore(COLLECTIONS_STORE);
-	const deleteRequest = store.delete(collectionName);
+	const transaction = db.transaction([COLLECTIONS_STORE, SHELFS_STORE], "readwrite");
+	const collectionsStore = transaction.objectStore(COLLECTIONS_STORE);
+	const shelfsStore = transaction.objectStore(SHELFS_STORE);
+
+	// Delete the collection
+	const deleteRequest = collectionsStore.delete(collectionName);
 	deleteRequest.onsuccess = (event) => {
 		console.log("Collection deleted successfully:", event.target.result);
 	};
 	deleteRequest.onerror = (event) => {
 		console.error("Error deleting collection:", event.target.error);
 	};
+
+	// Remove shelfs that contain the collection
+	const shelfsRequest = shelfsStore.getAll();
+	shelfsRequest.onsuccess = (event) => {
+		const shelfs = event.target.result;
+		shelfs.forEach((shelf) => {
+			if (shelf.collections && shelf.collections.includes(collectionName)) {
+				const updatedCollections = shelf.collections.filter(
+					(name) => name !== collectionName
+				);
+				if (updatedCollections.length === 0) {
+					shelfsStore.delete(shelf.id);
+				} else {
+					shelf.collections = updatedCollections;
+					shelfsStore.put(shelf);
+				}
+			}
+		});
+	};
+	shelfsRequest.onerror = (event) => {
+		console.error("Error retrieving shelfs:", event.target.error);
+	};
+
 	await transaction.complete;
 }
 
 export async function getCollectionsFromStore() {}
 export async function getFromStore(storeName, key = null) {
-    try {
-        const db = await openDB();
-        const transaction = db.transaction([storeName], "readonly");
-        const store = transaction.objectStore(storeName);
-        let request;
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([storeName], "readonly");
+		const store = transaction.objectStore(storeName);
+		let request;
 
-        if (key) {
-            request = store.get(key);
-        } else {
-            request = store.getAll();
-        }
+		if (key) {
+			request = store.get(key);
+		} else {
+			request = store.getAll();
+		}
 
-        return new Promise((resolve, reject) => {
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => reject("Error getting data: " + event.target.errorCode);
-        });
-    } catch (error) {
-        console.error(error);
-        throw error;
-    }
+		return new Promise((resolve, reject) => {
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) =>
+				reject("Error getting data: " + event.target.errorCode);
+		});
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
 }
 // const source = await getFromStore(SOURCES_STORE, sourceId);
 // const allSources = await getFromStore(SOURCES_STORE);
 // const collection = await getFromStore(COLLECTIONS_STORE, collectionName);
 // const allCollections = await getFromStore(COLLECTIONS_STORE);
+
+//Timeline
+export async function getRecordsTimeline() {
+	try {
+		const records = await getAllRecords();
+		const now = new Date();
+		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		const yesterday = new Date(
+			now.getFullYear(),
+			now.getMonth(),
+			now.getDate() - 1
+		);
+		const startOfWeek = getStartOfWeek(now);
+		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+		const currentYear = now.getFullYear();
+		const currentMonth = now.getMonth();
+		const timeline = {
+			today: [],
+			yesterday: [],
+			thisWeek: [],
+			thisMonth: [],
+			previousMonths: [],
+			previousYears: [],
+		};
+		records.forEach((record) => {
+			if (record.addedDate) {
+				const itemDate = new Date(record.addedDate);
+				const isSameDay = (date1, date2) =>
+					date1.getFullYear() === date2.getFullYear() &&
+					date1.getMonth() === date2.getMonth() &&
+					date1.getDate() === date2.getDate();
+				if (isSameDay(itemDate, today)) {
+					timeline.today.push(record);
+				} else if (isSameDay(itemDate, yesterday)) {
+					timeline.yesterday.push(record);
+				} else if (itemDate >= startOfWeek && itemDate < today) {
+					timeline.thisWeek.push(record);
+				} else if (itemDate >= startOfMonth && itemDate < yesterday) {
+					timeline.thisMonth.push(record);
+				} else {
+					const year = itemDate.getFullYear();
+					const month = itemDate.toLocaleString("default", { month: "short" });
+					const monthYearKey = `${month} ${year}`;
+
+					if (
+						itemDate.getFullYear() === now.getFullYear() &&
+						itemDate.getMonth() < now.getMonth()
+					) {
+						if (!timeline.previousMonths[monthYearKey]) {
+							timeline.previousMonths[monthYearKey] = [];
+						}
+						timeline.previousMonths[monthYearKey].push(record);
+					} else if (itemDate.getFullYear() < now.getFullYear()) {
+						if (!timeline.previousYears[year]) {
+							timeline.previousYears[year] = [];
+						}
+						timeline.previousYears[year].push(record);
+					}
+				}
+			}
+		});
+		return timeline;
+	} catch (error) {
+		console.error("Error getting records timeline:", error);
+		throw error;
+	}
+}
+function getStartOfWeek(date) {
+	const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
+	const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust when day is Sunday
+	return new Date(date.setDate(diff));
+}
 
 export {
 	openDB,

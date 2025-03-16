@@ -69,3 +69,18 @@ export async function fetchRecords() {
 		throw error;
 	}
 }
+
+export async function fetchFilters() {
+	try {
+		const response = await browser.runtime.sendMessage({
+			action: "getFilters",
+		});
+		if (response.error) {
+			throw new Error(response.error);
+		}
+		return response.filters;
+	} catch (error) {
+		console.error("Error fetching filters:", error);
+		throw error;
+	}
+}

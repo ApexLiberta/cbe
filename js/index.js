@@ -12,8 +12,17 @@ import {
 	shelfTemplate,
 	getWhatsNew,
 	getShelfHtml,
+	getDropdownHtml,
+	getLabeledDropdownHtml
 } from "./components/templates.js";
-import { fetchCollections, fetchCollection, fetchShelves, fetchRecord, fetchRecords } from "./extension/fetch.js";
+import {
+	fetchCollections,
+	fetchCollection,
+	fetchShelves,
+	fetchRecord,
+	fetchRecords,
+	fetchFilters,
+} from "./extension/fetch.js";
 
 // REVIEW Constants for page names
 const PAGE_HOME = "home";
@@ -244,9 +253,10 @@ async function libraryMgr(page, data) {
 			document.querySelector(".library-container").dataset.activePage =
 				PAGE_LIBRARY;
 
-			loadShelves();
+			loadShelves().then(() => {
+				//loadGames();
+			});
 			//loadCollections();
-			//loadGames();
 
 			console.info(`${PAGE_LIBRARY} page loaded`);
 			break;
@@ -436,308 +446,15 @@ async function libraryMgr(page, data) {
 				console.warn("collectionId is missing for PAGE_COLLECTION");
 				return;
 			}
-			const collectionSettings = [
-				{
-					name: "sources",
-					options: ["steam"],
-					default: "sources",
-					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button",
-				},
-				{
-					name: "sources",
-					options: ["steam"],
-					default: "sources",
-					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button",
-				},
-				{
-					name: "sources",
-					options: ["steam"],
-					default: "sources",
-					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button",
-				},
-				{
-					name: "sources",
-					options: ["steam"],
-					default: "sources",
-					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button",
-				},
-				{
-					name: "private",
-					options: [],
-					default: "private",
-					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button",
-				},
-				{
-					name: "delete",
-					options: [],
-					default: "delete",
-					icon: '<i class="fa-solid fa-trash"></i>',
-					type: "button",
-				},
-			];
-			const collectionFiltersArrReview = [
-				{
-					name: "sort by",
-					options: [
-						{
-							label: "Best Match",
-							order: true,
-						},
-						{
-							label: "Latest Upload",
-							order: true,
-						},
-						{
-							label: "Title",
-							order: true,
-						},
-						{
-							label: "Rating",
-							order: true,
-						},
-						{
-							label: "Follows",
-							order: true,
-						},
-						{
-							label: "Recently Added",
-							order: true,
-						},
-						{
-							label: "Year",
-							order: true,
-						},
-					],
-					default: "none",
-					order: true,
-				},
-				{
-					name: "filter tags",
-					options: [],
-					default: "include any",
-				},
-				{
-					name: "content rating",
-					options: [
-						{
-							label: "safe",
-						},
-						{
-							label: "suggestive",
-						},
-						{
-							label: "erotica",
-						},
-						{
-							label: "pornographic",
-						},
-					],
-					default: "any",
-				},
-				{
-					name: "delete",
-					options: [],
-					default: "delete",
-					icon: '<i class="fa-solid fa-trash"></i>',
-				},
-				{
-					name: "features",
-					options: [],
-					default: "features",
-					icon: '<i class="fa-solid fa-trash"></i>',
-				},
-				{
-					name: "genres",
-					options: [],
-					default: "genres",
-					icon: '<i class="fa-solid fa-trash"></i>',
-				},
-				{
-					name: "tags",
-					options: [],
-					default: "tags",
-					icon: '<i class="fa-solid fa-trash"></i>',
-				},
-			];
-			const collectionSettingsArr = [];
-			libraryContent.innerHTML = ``;
-			libraryContent.classList.add("collection-page");
-			const pageHeader = document.createElement("div");
-			pageHeader.classList.add("collection-header", "flex-row");
-			const collLabelCont = document.createElement("div");
-			collLabelCont.classList.add("coll-label-cont", "flex-row");
-			const nameTag = document.createElement("h2");
-			const labelTag = document.createElement("label");
-			labelTag.textContent = data.name;
-			labelTag.htmlFor = "collection-rename-btn";
-			nameTag.appendChild(labelTag);
-			const renameBtn = document.createElement("button");
-			renameBtn.id = "collection-rename-btn";
-			renameBtn.classList.add("rename-btn");
-			renameBtn.innerHTML = `<i class="fa-solid fa-pen"></i>`;
-			renameBtn.innerHTML = `<i class="fa-regular fa-pen-to-square"></i>`;
-			renameBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i>`;
-			renameBtn.addEventListener("click", (event) => {
-				console.log(event.target);
-			});
-			const lengthSpan = document.createElement("span");
-			lengthSpan.textContent = "( 0 )";
-			//data.records ? lengthSpan.textContent = `( ${data.records.length} )` : lengthSpan.textContent = `( 0 )`;
-			data.records
-				? (lengthSpan.textContent = `( ${data.records.length} )`)
-				: (lengthSpan.textContent = ``);
-			collLabelCont.append(nameTag, renameBtn, lengthSpan);
-			const filterBtn = document.createElement("button");
-			filterBtn.classList.add("filter-btn");
-			filterBtn.innerHTML = `<i class="fa-solid fa-filter"></i>`;
-			const settingBtn = document.createElement("button");
-			settingBtn.innerHTML = `
-				<span class="icon"><i class="fa-solid fa-bolt"></i></span>
-				<h3 class="txt">DYNAMIC COLLECTION</h3>
-				<span class="icon"><i class="fa-solid fa-gear"></i></span>
-			`;
-			settingBtn.classList.add("collection-settings", "active");
-			const settingCont = document.createElement("div");
-			settingCont.classList.add("collection-settings-cont", "active");
-			collectionSettings.forEach((filterObj) => {
-				const div = document.createElement("div");
-				div.classList.add("btn-ctx-dropdown");
-				const label = document.createElement("label");
-				label.textContent = filterObj.name;
-				const btnsDiv = document.createElement("div");
-				btnsDiv.classList.add("btn-cont", "flex-row");
-				const btn = document.createElement("button");
-				btn.classList.add("dropdown-btn");
-				btn.innerHTML = `<span class="txt">${filterObj.default}</span>`;
-				const orderBtn = document.createElement("button");
-				orderBtn.classList.add("order-btn");
-				orderBtn.innerHTML = `
-					<i class="fa-solid fa-sort"></i>
-				`;
-				filterObj.order ? btnsDiv.append(btn, orderBtn) : btnsDiv.append(btn);
-				//btn.dataset.filtergroup = filterObj.name;
-				/*
-				btn.innerHTML = `
-					<span class="txt">
-						${filterObj.default}
-					</span>
-					<span class="icon">
-						<i class="fa-solid fa-up-down"></i>
-					</span>
-				`;
-				*/
-				const optionDiv = document.createElement("div");
-				optionDiv.classList.add("dropdown-ctx", "hidden");
-				//optionDiv.classList.add(`filter-options-${filterObj.name.toLowerCase()}`);
-				console.log(filterObj.name.toLowerCase(), filterObj);
-				if (filterObj.options.length > 0) {
-					filterObj.options.forEach((filter) => {
-						const filterBtn = document.createElement("button");
-						filterBtn.textContent = filter.label;
-						filterBtn.classList.add("dropdown-option");
-						optionDiv.appendChild(filterBtn);
-						filterBtn.addEventListener("click", (event) => {
-							btn.dataset.active = filter.label;
-							btn.textContent = filter.label;
-							btn.classList.toggle("active");
-							optionDiv.classList.toggle("hidden");
-						});
-					});
-				}
-				btn.addEventListener("click", (event) => {
-					const check = event.target.classList.contains("active");
-					const allDropdowns =
-						settingCont.querySelectorAll(".btn-ctx-dropdown");
-					if (filterObj.type !== "button") {
-						allDropdowns.forEach((dropdown) => {
-							dropdown
-								.querySelector(".dropdown-btn")
-								.classList.remove("active");
-							dropdown.querySelector(".dropdown-ctx").classList.add("hidden");
-						});
-						if (!check) {
-							btn.classList.toggle("active");
-							optionDiv.classList.toggle("hidden");
-						}
-					}
-					switch (filterObj.name) {
-						case "delete":
-							const dialogManagerVar = dialogManager(
-								confirmationDialog({
-									header: "Confirmation Dialog",
-									headerDesc:
-										"Are you sure you want to delete this collection?",
-								})
-							);
-							dialogManagerVar.classList.add("delete-collection-dialog");
-							const dialogVar = dialogManagerVar.querySelector(".dialog");
-							const confirmationInput = dialogVar.querySelector(
-								"#confirmationCheckbox"
-							);
-							confirmationInput.addEventListener("change", () => {
-								confirmButton.disabled = !confirmationInput.checked; // Disable if input is empty or checkbox is checked and input is empty
-							});
-							const confirmButton = dialogVar.querySelector("#confirmButton");
-							confirmButton.addEventListener("click", () => {
-								if (confirmationInput.checked) {
-									browser.runtime.sendMessage(
-										{ action: "deleteCollection", name: data.name },
-										(response) => {
-											if (response.error) {
-												console.error("Error:", response.error);
-											} else {
-												dialogManagerVar.remove();
-												btn.classList.toggle("active");
-												libraryMgr(PAGE_COLLECTIONS);
-												loadAsideCollections();
-											}
-										}
-									);
-									console.log("Extra confirmation checked! Input value:");
-								} else {
-									console.log("Regular confirmation! Input value:");
-								}
-							});
-							const cancelButton = dialogVar.querySelector("#cancelButton");
-							cancelButton.addEventListener("click", () => {
-								dialogManagerVar.remove();
-								btn.classList.toggle("active");
-							});
-							break;
-						default:
-							break;
-					}
-				});
-				filterObj.type !== "button"
-					? div.append(label, btnsDiv, optionDiv)
-					: div.append(label, btnsDiv);
-				settingCont.appendChild(div);
-			});
-			settingBtn.addEventListener("click", (event) => {
-				settingBtn.classList.toggle("active");
-				settingCont.classList.toggle("active");
-			});
-			const itemsDiv = document.createElement("div");
-			itemsDiv.id = "game-list";
-			if (data.records) {
-				data.records.forEach((item) => {
-					const cont = document.createElement("div");
-					cont.classList.add("game-item");
-					cont.textContent = item;
-					itemsDiv.append(cont);
-				});
-			}
-			pageHeader.append(collLabelCont, filterBtn, settingBtn);
-			libraryContent.prepend(pageHeader, settingCont, itemsDiv);
-			console.info(`${data.name? data.name.toUpperCase(): "" + " " + PAGE_COLLECTION} page loaded`);
+			loadCollection(data);
+			console.info(
+				`${
+					data.name ? data.name.toUpperCase() : "" + " " + PAGE_COLLECTION
+				} page loaded`
+			);
 			break;
 		case PAGE_RECORD:
-			loadRecordPage();
+			loadRecordPage(data);
 			break;
 		default:
 			break;
@@ -749,6 +466,9 @@ async function loadShelves() {
 		const shelfs = await fetchShelves();
 		const collections = await fetchCollections();
 		const records = await fetchRecords();
+		const timelineData = await browser.runtime.sendMessage({
+			action: "fetchTimeLine",
+		});
 		console.log("records", records);
 
 		const shelfTemplateHtml = shelfTemplate({ variation: "add" }, collections);
@@ -761,13 +481,16 @@ async function loadShelves() {
 		libraryContent.querySelectorAll(".option-btn").forEach((btn) => {
 			btn.addEventListener("click", () => {
 				console.log("Option button clicked", btn.textContent);
-				libraryContent.querySelector(".shelf-options").classList.toggle("active");
+				libraryContent
+					.querySelector(".shelf-options")
+					.classList.toggle("active");
 				const selectedOption = btn.textContent;
 				if (
 					selectedOption === "uncategorized" ||
 					selectedOption === "all" ||
 					selectedOption === "recently added" ||
-					selectedOption === "collections view"
+					selectedOption === "collections view" ||
+					collections.map((obj) => obj.name).includes(selectedOption)
 				) {
 					const messageData = {
 						name: selectedOption,
@@ -779,7 +502,8 @@ async function loadShelves() {
 						messageData.type = "timeline";
 					} else if (
 						selectedOption === "all" ||
-						selectedOption === "uncategorized"
+						selectedOption === "uncategorized" ||
+						collections.map((obj) => obj.name).includes(selectedOption)
 					) {
 						messageData.type = "collection";
 					}
@@ -791,7 +515,7 @@ async function loadShelves() {
 						(response) => {
 							if (response && response.success) {
 								//loadShelves();
-								addShelfButton.disabled = false
+								addShelfButton.disabled = false;
 								document
 									.querySelector(".shelf-banner")
 									.classList.toggle("active");
@@ -800,7 +524,9 @@ async function loadShelves() {
 								console.log("addedShelf", addedShelf);
 								const addedShelfHtml = getShelfHtml(addedShelf, collections);
 								//libraryContent.querySelector(".shelfs-cont").replaceWith(addedShelfHtml);
-								libraryContent.querySelector(".shelfs-cont").prepend(addedShelfHtml);
+								libraryContent
+									.querySelector(".shelfs-cont")
+									.prepend(addedShelfHtml);
 								//const shelfHtml = getShelfHtml(addedShelf, collections);
 								//document.querySelector(".shelfs-cont").appendChild(shelfHtml);
 								if (btn.textContent === "all") {
@@ -828,7 +554,9 @@ async function loadShelves() {
 		libraryContent
 			.querySelector(".select-shelf-btn")
 			.addEventListener("click", () => {
-				libraryContent.querySelector(".shelf-options").classList.toggle("active");
+				libraryContent
+					.querySelector(".shelf-options")
+					.classList.toggle("active");
 			});
 		//libraryContent.prepend(getHomePageHtml());
 
@@ -855,12 +583,40 @@ async function loadShelves() {
 					});
 				} else if (shelf.type === "timeline") {
 					shelfContent.classList.add("shelf-timeline");
-					const timeline = document.createElement("div");
-					timeline.classList.add("timeline");
-					shelfContent.appendChild(timeline);
+					const timelineObj = timelineData.timeline;
+					console.log("timelineData", timelineObj);
+					if (timelineObj) {
+						Object.entries(timelineObj).forEach(([key, value]) => {
+							const timelineGroup = document.createElement("div");
+							timelineGroup.classList.add("timeline-group");
+							timelineGroup.dataset.timeline = key;
+							const timelineHeaderBtn = document.createElement("button");
+							timelineHeaderBtn.textContent = key;
+							timelineGroup.appendChild(timelineHeaderBtn);
+							const recordsDiv = document.createElement("div");
+							recordsDiv.classList.add("records");
+							timelineGroup.appendChild(recordsDiv);
+							const records = value;
+							records.forEach((record) => {
+								const recordDiv = document.createElement("div");
+								recordDiv.classList.add("shelf-item-record");
+								recordDiv.textContent = record.name;
+								recordsDiv.appendChild(recordDiv);
+							});
+							shelfContent.appendChild(timelineGroup);
+						});
+					}
 				} else if (shelf.type === "collection") {
 					shelfContent.classList.add("shelf-collection");
+					const selectOptionBtnCount = shelfHtml.querySelector(
+						".select-shelf-btn .count"
+					);
 					if (shelf.name === "all") {
+						if (selectOptionBtnCount) {
+							selectOptionBtnCount.textContent = records.length
+								? `( ${records.length} )`
+								: `( 0 )`;
+						}
 						records.forEach((record) => {
 							const recordDiv = document.createElement("div");
 							recordDiv.classList.add("shelf-item-record");
@@ -869,22 +625,27 @@ async function loadShelves() {
 							//recordDiv.textContent = recordString;
 							shelfContent.appendChild(recordDiv);
 						});
-					}else{
+					} else {
 						const collectionDiv = document.createElement("div");
 						collectionDiv.classList.add("collection");
 						fetchCollection(shelf.name).then((response) => {
 							console.log("Received collection:", response);
-							if (
-								typeof response.collections !== "undefined"
-							) {
+							if (typeof response.collections !== "undefined") {
 								const collection = response.collections;
-								console.log(collection)
-								collection.records.forEach((record) => {
-									const recordDiv = document.createElement("div");
-									recordDiv.classList.add("shelf-item-record");
-									recordDiv.textContent = record;
-									shelfContent.appendChild(recordDiv);
-								});
+								if (selectOptionBtnCount) {
+									selectOptionBtnCount.textContent = collection.records
+										? `( ${collection.records.length} )`
+										: `( 0 )`;
+								}
+								console.log(collection);
+								if (collection.records) {
+									collection.records.forEach((record) => {
+										const recordDiv = document.createElement("div");
+										recordDiv.classList.add("shelf-item-record");
+										recordDiv.textContent = record;
+										shelfContent.appendChild(recordDiv);
+									});
+								}
 							}
 						});
 						shelfContent.appendChild;
@@ -892,7 +653,7 @@ async function loadShelves() {
 				}
 			});
 		}
-		console.log(document.querySelectorAll(".select-shelf-btn"))
+		console.log(document.querySelectorAll(".select-shelf-btn"));
 		//const addShelfHtml = getShelfHtml({ variation: "add" }, collections);
 		//console.log(addShelfHtml);
 		//document.querySelector(".shelf-top").appendChild(addShelfHtml);
@@ -923,10 +684,351 @@ async function loadCollections() {
 	}
 }
 
+async function loadCollection(collection) {
+	try {
+		const filters = await fetchFilters();
+		const genres = filters.filter((filter) => filter.type === "genre");
+		const tags = filters.filter((filter) => filter.type === "tag");
+		const features = filters.filter((filter) => filter.type === "feature");
+
+		console.group("loadCollection");
+		console.log("retrieved filters:", filters);
+		console.log("retrieved genres:", genres);
+		console.log("retrieved tags:", tags);
+		console.log("retrieved features:", features);
+		console.groupEnd();
+
+		const collectionSettingsConfig = [
+			{
+				name: "sources",
+				options: ["steam"],
+				default: "steam", // Changed default to match an option
+				icon: '<i class="fa-solid fa-cloud"></i>', // More relevant icon
+				type: "dropdown",
+			},
+			{
+				name: "genres",
+				icon: '<i class="fa-solid fa-list"></i>', // More relevant icon
+				type: "dropdown",
+			},
+			{
+				name: "tags",
+				icon: '<i class="fa-solid fa-tag"></i>', // More relevant icon
+				type: "dropdown",
+			},
+			{
+				name: "features",
+				icon: '<i class="fa-solid fa-star"></i>', // More relevant icon
+				type: "dropdown",
+			},
+			{
+				name: "private",
+				icon: '<i class="fa-solid fa-lock"></i>', // More relevant icon
+				type: "button",
+			},
+			{
+				name: "delete",
+				icon: '<i class="fa-solid fa-trash"></i>',
+				type: "button",
+			},
+		];
+
+		const collectionFiltersArrReview = [
+			{
+				name: "sort by",
+				options: [
+					{ label: "Best Match", order: true },
+					{ label: "Latest Upload", order: true },
+					{ label: "Title", order: true },
+					{ label: "Rating", order: true },
+					{ label: "Follows", order: true },
+					{ label: "Recently Added", order: true },
+					{ label: "Year", order: true },
+				],
+				default: "none",
+				order: true,
+			},
+			{ name: "filter tags", options: [], default: "include any" },
+			{
+				name: "content rating",
+				options: [
+					{ label: "safe" },
+					{ label: "suggestive" },
+					{ label: "erotica" },
+					{ label: "pornographic" },
+				],
+				default: "any",
+			},
+			{
+				name: "delete",
+				options: [],
+				default: "delete",
+				icon: '<i class="fa-solid fa-trash"></i>',
+			},
+			{
+				name: "features",
+				options: features.map((feature) => feature.name),
+				default: "features",
+				icon: '<i class="fa-solid fa-trash"></i>',
+			},
+			{
+				name: "genres",
+				options: genres.map((genre) => genre.name),
+				default: "genres",
+				icon: '<i class="fa-solid fa-trash"></i>',
+			},
+			{
+				name: "tags",
+				options: tags.map((tag) => tag.name),
+				default: "tags",
+				icon: '<i class="fa-solid fa-trash"></i>',
+			},
+		];
+
+		//const libraryContent = document.getElementById("libraryContent");
+		const libraryContent = document.querySelector(".library-content");
+		if (!libraryContent) {
+			console.error("libraryContent element not found.");
+			return;
+		}
+		libraryContent.innerHTML = ``;
+		libraryContent.classList.add("collection-page");
+
+		const pageHeader = document.createElement("div");
+		pageHeader.classList.add("collection-header", "flex-row");
+
+		const collLabelCont = document.createElement("div");
+		collLabelCont.classList.add("coll-label-cont", "flex-row");
+
+		const nameTag = document.createElement("h2");
+		const labelTag = document.createElement("label");
+		labelTag.textContent = collection.name;
+		labelTag.htmlFor = "collection-rename-btn";
+		nameTag.appendChild(labelTag);
+
+		const renameBtn = document.createElement("button");
+		renameBtn.id = "collection-rename-btn";
+		renameBtn.classList.add("rename-btn");
+		renameBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i>`;
+		renameBtn.addEventListener("click", (event) => {
+			console.log("Rename button clicked", event.target);
+			// Implement rename functionality here
+		});
+
+		const lengthSpan = document.createElement("span");
+		lengthSpan.textContent = collection.records ? `( ${collection.records.length} )` : `( 0 )`;
+		collLabelCont.append(nameTag, renameBtn, lengthSpan);
+
+		const filterBtn = document.createElement("button");
+		filterBtn.classList.add("filter-btn");
+		filterBtn.innerHTML = `<i class="fa-solid fa-filter"></i>`;
+		// Implement filter functionality here
+
+		const settingBtn = document.createElement("button");
+		settingBtn.innerHTML = `
+			<span class="icon"><i class="fa-solid fa-bolt"></i></span>
+			<h3 class="txt">COLLECTION SETTINGS</h3>
+		`;
+		settingBtn.classList.add("collection-settings");
+		const settingCont = document.createElement("div");
+		settingCont.classList.add("collection-settings-cont", "hidden"); // Initially hidden
+
+		// Function to create a dropdown element
+		const createDropdown = (filterObj, options) => {
+			const div = document.createElement("div");
+			div.classList.add("btn-ctx-dropdown");
+
+			const label = document.createElement("label");
+			label.textContent = filterObj.name;
+
+			const btnsDiv = document.createElement("div");
+			btnsDiv.classList.add("btn-cont", "flex-row");
+
+			const btn = document.createElement("button");
+			btn.classList.add("dropdown-btn");
+			btn.innerHTML = `<span class="txt">${filterObj.default || "Select"}</span>`;
+
+			const orderBtn = document.createElement("button");
+			orderBtn.classList.add("order-btn");
+			orderBtn.innerHTML = `<i class="fa-solid fa-sort"></i>`;
+			if (filterObj.order) {
+				btnsDiv.append(btn, orderBtn);
+			} else {
+				btnsDiv.append(btn);
+			}
+
+			const optionDiv = document.createElement("div");
+			optionDiv.classList.add("dropdown-ctx", "hidden");
+
+			options.forEach((option) => {
+				const optionBtn = document.createElement("button");
+				optionBtn.textContent = option;
+				optionBtn.classList.add("dropdown-option");
+				optionDiv.appendChild(optionBtn);
+				optionBtn.addEventListener("click", () => {
+					btn.querySelector(".txt").textContent = option;
+					btn.classList.remove("active");
+					optionDiv.classList.add("hidden");
+					// Implement filtering logic based on selected option
+					console.log(`${filterObj.name} selected:`, option);
+				});
+			});
+
+			btn.addEventListener("click", (event) => {
+				const isActive = event.currentTarget.classList.contains("active");
+				// Hide all other open dropdowns
+				settingCont.querySelectorAll(".btn-ctx-dropdown .dropdown-btn.active").forEach(otherBtn => {
+					console.log("otherBtn", otherBtn);
+					if (otherBtn !== event.currentTarget) {
+						otherBtn.classList.remove("active");
+						otherBtn.parentElement.nextElementSibling.classList.add("hidden");
+					}
+				});
+				btn.classList.toggle("active");
+				optionDiv.classList.toggle("hidden");
+			});
+
+			div.append(label, btnsDiv, optionDiv);
+			return div;
+		};
+
+		// Function to create a button element
+		const createButton = (filterObj) => {
+			const div = document.createElement("div");
+			div.classList.add("btn-ctx-button");
+
+			const label = document.createElement("label");
+			label.textContent = filterObj.name;
+
+			const btnsDiv = document.createElement("div");
+			btnsDiv.classList.add("btn-cont", "flex-row");
+
+			const btn = document.createElement("button");
+			btn.classList.add("action-button");
+			btn.innerHTML = `<span class="txt">${filterObj.name}</span> ${filterObj.icon || ""}`;
+
+			btn.addEventListener("click", () => {
+				console.log(`${filterObj.name} button clicked`);
+				switch (filterObj.name) {
+					case "delete":
+						const dialogManagerVar = dialogManager(
+							confirmationDialog({
+								header: "Confirmation Dialog",
+								headerDesc: "Are you sure you want to delete this collection?",
+							})
+						);
+						dialogManagerVar.classList.add("delete-collection-dialog");
+						const dialogVar = dialogManagerVar.querySelector(".dialog");
+						const confirmationInput = dialogVar.querySelector("#confirmationCheckbox");
+						const confirmButton = dialogVar.querySelector("#confirmButton");
+						const cancelButton = dialogVar.querySelector("#cancelButton");
+
+						confirmButton.disabled = !confirmationInput.checked;
+						confirmationInput.addEventListener("change", () => {
+							confirmButton.disabled = !confirmationInput.checked;
+						});
+						confirmButton.addEventListener("click", () => {
+							if (confirmationInput.checked) {
+								browser.runtime.sendMessage(
+									{ action: "deleteCollection", name: collection.name },
+									(response) => {
+										if (response.error) {
+											console.error("Error:", response.error);
+										} else {
+											dialogManagerVar.remove();
+											libraryMgr(PAGE_COLLECTIONS);
+											loadAsideCollections();
+										}
+									}
+								);
+								console.log("Delete confirmed!");
+							}
+						});
+						cancelButton.addEventListener("click", () => {
+							dialogManagerVar.remove();
+						});
+						break;
+					case "private":
+						// Implement private toggle logic
+						console.log("Private button clicked");
+						break;
+					default:
+						break;
+				}
+			});
+
+			btnsDiv.append(btn);
+			div.append(label, btnsDiv);
+			return div;
+		};
+
+		// Populate collection settings dynamically
+		collectionSettingsConfig.forEach((filterConfig) => {
+			switch (filterConfig.name) {
+				case "genres":
+					settingCont.appendChild(createDropdown(filterConfig, genres.map(g => g.name)));
+					break;
+				case "tags":
+					settingCont.appendChild(createDropdown(filterConfig, tags.map(t => t.name)));
+					break;
+				case "features":
+					settingCont.appendChild(createDropdown(filterConfig, features.map(f => f.name)));
+					break;
+				case "sources":
+					settingCont.appendChild(createDropdown(filterConfig, filterConfig.options));
+					break;
+				case "private":
+				case "delete":
+					settingCont.appendChild(createButton(filterConfig));
+					break;
+				default:
+					console.warn(`Unknown filter type: ${filterConfig.name}`);
+			}
+		});
+
+		settingBtn.addEventListener("click", () => {
+			settingBtn.classList.toggle("active");
+			settingCont.classList.toggle("hidden");
+		});
+
+		const itemsDiv = document.createElement("div");
+		itemsDiv.id = "game-list";
+		if (collection.records) {
+			collection.records.forEach((item) => {
+				const cont = document.createElement("div");
+				cont.classList.add("game-item");
+				cont.textContent = item;
+				itemsDiv.append(cont);
+				cont.addEventListener("click", () => {
+					libraryMgr(PAGE_RECORD, item);
+				})
+			});
+		}
+
+		pageHeader.append(collLabelCont, filterBtn, settingBtn);
+		libraryContent.prepend(pageHeader, settingCont, itemsDiv);
+
+		// Initial setup of dropdown values based on collection data if available
+		if (collection.filters) {
+			Object.keys(collection.filters).forEach(filterName => {
+				const value = collection.filters[filterName];
+				const dropdownBtn = settingCont.querySelector(`.btn-ctx-dropdown label:contains("${filterName}") + .btn-cont .dropdown-btn .txt`);
+				if (dropdownBtn) {
+					dropdownBtn.textContent = value;
+				}
+			});
+		}
+
+		console.log("Loaded collection:", collection);
+	} catch (error) {
+		console.error("Error loading collection:", error);
+	}
+}
+
 async function loadGames() {
 	try {
 		const response = await browser.runtime.sendMessage({
-			action: "getAllGames",
+			action: "getRecords",
 		});
 		if (typeof response === "undefined") {
 			console.error("Error: No response received from background script.");
@@ -936,7 +1038,8 @@ async function loadGames() {
 			console.error("Error:", response.error);
 		} else {
 			console.log("Received games:", response);
-			const gameList = document.getElementById("game-list");
+			const gameList = document.createElement("div");
+			gameList.id = "game-list";
 			if (gameList && response.games) {
 				gameList.innerHTML = ""; // Clear existing games
 				response.games.forEach((game) => {
@@ -957,6 +1060,8 @@ async function loadGames() {
 					libraryMgr(PAGE_RECORD, item.querySelector("h3").innerText);
 				});
 			});
+			console.log(document.querySelector(".library-content"), gameList);
+			document.querySelector(".library-content").appendChild(gameList);
 		}
 	} catch (error) {
 		console.error("Error loading games:", error);
@@ -970,9 +1075,11 @@ function loadSettingsPage() {}
 function loadCollectionsPage() {}
 function loadCollectionPage() {}
 
-function loadRecordPage() {
+function loadRecordPage(record) {
+	console.log("Item clicked:", record);
+
 	try {
-		fetchRecord(data)
+		fetchRecord(record)
 			.then((gameInfo) => {
 				//console.log("Received game:", gameInfo);
 				//gamePopup.style.display = "block";
@@ -1065,7 +1172,7 @@ function loadRecordPage() {
 					entryPagePanel
 				);
 				const gameHeading = document.createElement("h2");
-				gameHeading.textContent = data;
+				gameHeading.textContent = record;
 				entryPageAside.prepend(gameHeading);
 				for (const fd in gameInfo) {
 					if ((fd !== "id") & (fd !== "name")) {
@@ -1174,12 +1281,12 @@ function loadRecordPage() {
 				}
 			})
 			.catch((error) => {
-				console.error("Error fetching game data:", error);
+				console.error("Error fetching record data:", error);
 			});
 	} catch (error) {
-		console.error("Error fetching game data:", error);
+		console.error("Error fetching record data:", error);
 	}
-	console.info(`${PAGE_RECORD} page loaded`, data);
+	console.info(`${PAGE_RECORD} page loaded`, record);
 }
 
 const settingsButton = document.querySelector("#settings-trigger");
@@ -1190,13 +1297,10 @@ settingsButton.addEventListener("click", () => {
 	/*
 	const dialogMgr = dialogManager(connectSettingsDialog());
 	dialogMgr.classList.add("settings-dialog");
-
 	const dialog = dialogMgr.querySelector(".dialog");
 	const dialogSidebarLabels = dialog.querySelector(".settings-group");
 	const dialogContent = dialog.querySelector(".settings-content");
-
 	const activeBg = dialog.querySelector(".active-bg");
-
 	browser.runtime
 		.sendMessage({ action: "getSettings" })
 		.then((settings) => {
@@ -1208,24 +1312,19 @@ settingsButton.addEventListener("click", () => {
 					btnTag.textContent = sectionKey;
 					btnTag.classList.add("aside-btn");
 					asideListItem.appendChild(btnTag);
-
 					const section = settings[sectionKey];
-
 					btnTag.addEventListener("click", (event) => {
 						// More efficient active class management
 						if (!event.target.classList.contains("active")) {
 							const sectionDiv = document.createElement("div");
 							sectionDiv.classList.add("settings-section");
-
 							const sectionHeader = document.createElement("h2");
 							sectionHeader.textContent = section.label || sectionKey;
-
 							if (section.description) {
 								const sectionDescription = document.createElement("p");
 								sectionDescription.classList.add("section-description");
 								sectionDescription.textContent = section.description;
 							}
-
 							if (section.options && false) {
 								const configContainer = document.createElement("div");
 								configContainer.classList.add("settings-config");
@@ -1240,7 +1339,6 @@ settingsButton.addEventListener("click", () => {
 								}
 								sectionDiv.appendChild(configContainer);
 							}
-
 							if (sectionKey === "overview") {
 								console.log("overview");
 								const btnsCont = document.createElement("div");
@@ -1308,10 +1406,7 @@ settingsButton.addEventListener("click", () => {
 												librariesDropdownBtn,
 												librariesDropdownCtx
 											);
-											sectionHeader.nextSibling
-												? sectionHeader.after(librariesDropdown)
-												: sectionHeader.after(librariesDropdown);
-
+											sectionHeader.nextSibling ? sectionHeader.after(librariesDropdown) : sectionHeader.after(librariesDropdown);
 											librariesDropdownBtn.addEventListener(
 												"click",
 												(event) => {
@@ -1416,7 +1511,6 @@ settingsButton.addEventListener("click", () => {
 											librariesDropdownCtx.appendChild(librariesUl);
 											console.group("Libraries", dbs);
 											console.log("Libraries", section.options.libraries);
-
 											//console.info("index", dbs, dialogContent);
 											console.groupEnd();
 										}
@@ -1424,7 +1518,6 @@ settingsButton.addEventListener("click", () => {
 									.catch((error) => {
 										console.error("Error getting database:", error); // More descriptive error message
 									});
-
 								const sourcesListDiv = document.createElement("div");
 								const sourcesList = document.createElement("ul");
 								sourcesList.classList.add("sources-list");
@@ -1439,13 +1532,10 @@ settingsButton.addEventListener("click", () => {
 										if (sources) {
 											sources.forEach((source) => {
 												const sourceLi = document.createElement("li");
-
 												const listHeader = document.createElement("div");
 												listHeader.classList.add("list-header");
-
 												const listHeading = document.createElement("h4");
 												listHeading.textContent = source.name;
-
 												const toggleDiv = document.createElement("div");
 												const label = document.createElement("label");
 												label.setAttribute(
@@ -1460,7 +1550,6 @@ settingsButton.addEventListener("click", () => {
 												input.checked = source.default === true;
 												toggleDiv.append(label, input);
 												listHeader.append(listHeading, toggleDiv);
-
 												const matchesDiv = document.createElement("div");
 												matchesDiv.classList.add(
 													"matches-container",
@@ -1472,7 +1561,6 @@ settingsButton.addEventListener("click", () => {
 												matchesList.classList.add("matches-list");
 												matchesList.textContent = source.matches;
 												matchesDiv.append(matchesHeader, matchesList);
-
 												const selectorsContainer =
 													document.createElement("div");
 												selectorsContainer.classList.add("selectors-container");
@@ -1511,7 +1599,6 @@ settingsButton.addEventListener("click", () => {
 										}
 									});
 							}
-
 							dialogSidebarLabels.querySelectorAll("button").forEach((btn) => {
 								btn.classList.toggle("active", btn === btnTag);
 							});
@@ -1602,3 +1689,18 @@ initializeEvents();
 function refreshEvents() {
 	initializeEvents();
 }
+
+export function hideAllDropdowns() {
+	const allDropdowns = document.querySelectorAll(".dropdown-menu.active");
+	allDropdowns.forEach((dd) => {
+		dd.classList.remove("show");
+		dd.classList.remove("active");
+	});
+	console.log("All dropdowns hidden");
+}
+
+document.addEventListener("click", (event) => {
+	if (!event.target.closest(".dropdown")) {
+		hideAllDropdowns();
+	}
+});
