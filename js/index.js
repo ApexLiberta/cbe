@@ -77,6 +77,7 @@ function isBrowserEnvironment() {
 		return false;
 	}
 }
+console.log("browser", browser)
 const isBrowser = isBrowserEnvironment();
 
 function extensionPageManger() {}
@@ -536,9 +537,12 @@ async function loadShelves() {
 										recordDiv.textContent = record.name;
 										//const recordString = JSON.stringify(record);
 										//recordDiv.textContent = recordString;
-										shelfHtml
+										addedShelfHtml
 											.querySelector(".shelf-content")
 											.appendChild(recordDiv);
+										recordDiv.addEventListener("click", () => {
+											libraryMgr(PAGE_RECORD, record.name);
+										});
 									});
 								}
 							}
@@ -624,6 +628,9 @@ async function loadShelves() {
 							//const recordString = JSON.stringify(record);
 							//recordDiv.textContent = recordString;
 							shelfContent.appendChild(recordDiv);
+							recordDiv.addEventListener("click", () => {
+								libraryMgr(PAGE_RECORD, record.name);
+							});
 						});
 					} else {
 						const collectionDiv = document.createElement("div");
@@ -644,6 +651,9 @@ async function loadShelves() {
 										recordDiv.classList.add("shelf-item-record");
 										recordDiv.textContent = record;
 										shelfContent.appendChild(recordDiv);
+										recordDiv.addEventListener("click", () => {
+											libraryMgr(PAGE_RECORD, record);
+										});
 									});
 								}
 							}
@@ -686,10 +696,12 @@ async function loadCollections() {
 
 async function loadCollection(collection) {
 	try {
+		console.warn(collection);
 		const filters = await fetchFilters();
 		const genres = filters.filter((filter) => filter.type === "genre");
 		const tags = filters.filter((filter) => filter.type === "tag");
 		const features = filters.filter((filter) => filter.type === "feature");
+		const sources = await browser.runtime.sendMessage({ action: "getSources" });;
 
 		console.group("loadCollection");
 		console.log("retrieved filters:", filters);
@@ -701,7 +713,7 @@ async function loadCollection(collection) {
 		const collectionSettingsConfig = [
 			{
 				name: "sources",
-				options: ["steam"],
+				options: sources.map((source) => source.name),
 				default: "steam", // Changed default to match an option
 				icon: '<i class="fa-solid fa-cloud"></i>', // More relevant icon
 				type: "dropdown",
@@ -720,11 +732,6 @@ async function loadCollection(collection) {
 				name: "features",
 				icon: '<i class="fa-solid fa-star"></i>', // More relevant icon
 				type: "dropdown",
-			},
-			{
-				name: "private",
-				icon: '<i class="fa-solid fa-lock"></i>', // More relevant icon
-				type: "button",
 			},
 			{
 				name: "delete",
@@ -825,11 +832,18 @@ async function loadCollection(collection) {
 		// Implement filter functionality here
 
 		const settingBtn = document.createElement("button");
-		settingBtn.innerHTML = `
-			<span class="icon"><i class="fa-solid fa-bolt"></i></span>
-			<h3 class="txt">COLLECTION SETTINGS</h3>
-		`;
-		settingBtn.classList.add("collection-settings");
+		if (collection.isDynamic) {
+			settingBtn.innerHTML = `
+				<span class="icon"><i class="fa-solid fa-bolt"></i></span>
+				<h3 class="txt">COLLECTION SETTINGS</h3>
+			`;
+			settingBtn.classList.add("collection-settings");
+
+			settingBtn.addEventListener("click", () => {
+				settingBtn.classList.toggle("active");
+				settingCont.classList.toggle("hidden");
+			});
+		}
 		const settingCont = document.createElement("div");
 		settingCont.classList.add("collection-settings-cont", "hidden"); // Initially hidden
 
@@ -871,6 +885,31 @@ async function loadCollection(collection) {
 					optionDiv.classList.add("hidden");
 					// Implement filtering logic based on selected option
 					console.log(`${filterObj.name} selected:`, option);
+					// Add selected item to collection
+					if (!collection.filters) {
+						collection.filters = {};
+					}
+					collection.filters[filterObj.name] = option;
+					browser.runtime.sendMessage(
+						{
+							action: "addOrUpdateCollection",
+							name: collection.name,
+							data: collection
+						},
+						(response) => {
+							if (response.error) {
+								console.error(
+									"Error updating collection filters:",
+									response.error
+								);
+							} else {
+								console.log(
+									"Collection filters updated successfully:",
+									response
+								);
+							}
+						}
+					);
 				});
 			});
 
@@ -977,7 +1016,6 @@ async function loadCollection(collection) {
 				case "sources":
 					settingCont.appendChild(createDropdown(filterConfig, filterConfig.options));
 					break;
-				case "private":
 				case "delete":
 					settingCont.appendChild(createButton(filterConfig));
 					break;
@@ -986,10 +1024,6 @@ async function loadCollection(collection) {
 			}
 		});
 
-		settingBtn.addEventListener("click", () => {
-			settingBtn.classList.toggle("active");
-			settingCont.classList.toggle("hidden");
-		});
 
 		const itemsDiv = document.createElement("div");
 		itemsDiv.id = "game-list";
@@ -1005,7 +1039,8 @@ async function loadCollection(collection) {
 			});
 		}
 
-		pageHeader.append(collLabelCont, filterBtn, settingBtn);
+		collection.isDynamic ? pageHeader.append(collLabelCont, filterBtn, settingBtn) : pageHeader.append(collLabelCont, filterBtn);
+
 		libraryContent.prepend(pageHeader, settingCont, itemsDiv);
 
 		// Initial setup of dropdown values based on collection data if available
@@ -1102,8 +1137,22 @@ function loadRecordPage(record) {
 				const addToFavoritesButton = document.createElement("button");
 				addToFavoritesButton.innerHTML = `<i class="fa-solid fa-heart"></i>`;
 				addToFavoritesButton.classList.add("favorite-button");
+				if ((gameInfo.collections).includes("favorites")) {
+					addToFavoritesButton.classList.add("active");
+				}
 				addToFavoritesButton.addEventListener("click", () => {
 					addToFavoritesButton.classList.toggle("active");
+					(async () => {
+						const action = "addToFavorites";
+						const message = { action, name: gameInfo.name };
+						try {
+							const response = await browser.runtime.sendMessage(message);
+							console.log("Favorite added successfully:", response);
+						} catch (error) {
+							addToFavoritesButton.classList.toggle("active");
+							console.error("Error adding favorite:", error);
+						}
+					})();
 				});
 				const moreInfoButton = document.createElement("button");
 				moreInfoButton.innerHTML = `<i class="fa-solid fa-circle-info"></i>`;
@@ -1161,6 +1210,14 @@ function loadRecordPage(record) {
 				entryPageAside.classList.add("entry-aside");
 				const entryPageContent = document.createElement("div");
 				entryPageContent.classList.add("entry-content");
+				entryPageContent.innerHTML = `
+					<!--<h2 class="entry-title">${gameInfo.name}</h2>-->
+					<p>
+						<div id="game_area_description" class="game_area_description">
+							<h2>About This Game</h2>
+							<img class="bb_img" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2144740/extras/GR-2-Logo.gif?t=1739398668"><br><br>Blood will run in the highly anticipated hardcore FPP slasher set one year after the events of Ghostrunner. Adventure through a post-apocalyptic cyberpunk future that takes place after the fall of the Keymaster, a tyrant who ruled over Dharma Tower, the last refuge of mankind. Jack is back to take on the violent AI cult that has assembled outside Dharma Tower and shape the future of humanity.<br><br>Featuring incredible katana combat mechanics, a deeper exploration of the world beyond Dharma Tower, nonlinear levels with complex motorbike sections, exciting new modes, and all the action you loved about Ghostrunner. Plus, boss fights are more interactive, giving players freedom to choose how to survive battles against the toughest opponents.<br><br><img class="bb_img" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2144740/extras/GR2_Katana-02-Crop.gif?t=1739398668"><br><br><strong>Become The Ultimate Cyber Ninja</strong><br>Ghostrunner 2 introduces new skills, allowing players to be more creative and take on even the most demanding encounters with greater accessibility. However, enemies in Ghostrunner 2 behave uniquely dependent on the skills used against them, providing a fresh challenge with each encounter. The player progression system has been completely redone, providing opportunities to experiment and customize gameplay.<br><br><img class="bb_img" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2144740/extras/GR2_Motorbike-02-Crop.gif?t=1739398668"><br><br><strong>Immersive, Mind-Bending Features</strong><br>Master the Cybervoid if you hope to survive. Take on challenging, new enemies as you traverse interactive environments including exploding barrels, destructible walls, helpful neutral entities, and countless improvements that keep combat exciting and fresh. Can’t get enough? Dive even deeper into the lore and plot with the new dialogue system.<br><br><img class="bb_img" src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2144740/extras/GR2_Shuriken-02-Crop.gif?t=1739398668"><br><br><strong>Sounds of the Cybervoid</strong><br>Save humanity in style as you decimate your opponents while listening to the captivating synthwave soundtrack featuring new music from Daniel Deluxe, We Are Magonia, Gost, Dan Terminus, and Arek Reikowski.						</div>
+					</p>
+				`;
 				entryPagePanel.append(entryPageContent, entryPageAside);
 
 				libraryContent.append(

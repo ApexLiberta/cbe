@@ -11,6 +11,7 @@ import {
 	getRecordsTimeline,
 } from "../db/database.js";
 import { getFromStore } from "../db/database.js";
+import { toggleFavorites } from "../db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
 (function () {
@@ -247,6 +248,17 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				.catch((error) => {
 					console.error("Error getting filters:", error);
 					sendResponse({ error: "Error loading filters" });
+				});
+			return true;
+		case "addToFavorites":
+			toggleFavorites(request.name)
+				.then((favorite) => {
+					console.log("Favorite added successfully:", favorite);
+					sendResponse({ success: true, favorite });
+				})
+				.catch((error) => {
+					console.error("Error adding favorite:", error);
+					sendResponse({ success: false, error: error.message });
 				});
 			return true;
 		default:

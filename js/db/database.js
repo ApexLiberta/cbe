@@ -58,6 +58,7 @@ export function indexedDBPromise(dbName, version, action) {
 		//	reject(errorMessage);
 		//	return;
 		//}
+
 		console.log(
 			`Attempting to open database: ${dbName}, version: ${version}, objectStore: ${action.objectStoreName}`
 		);
@@ -100,7 +101,9 @@ function openDB() {
 				store.createIndex("publishers", "publishers", { multiEntry: true });
 				store.createIndex("categories", "categories", { multiEntry: true });
 				store.createIndex("collections", "collections", { multiEntry: true });
+				store.createIndex("genre", "genre");
 				store.createIndex("genres", "genres", { multiEntry: true });
+				store.createIndex("subGenres", "subGenres", { multiEntry: true });
 				store.createIndex("features", "features", { multiEntry: true });
 				store.createIndex("tags", "tags", { multiEntry: true });
 				store.createIndex("releaseDate", "releaseDate");
@@ -127,7 +130,9 @@ function openDB() {
 				store.createIndex("software", "software");
 				store.createIndex("tools", "tools");
 			}
+
 			// Create sourcesStore with relevant keyPath
+
 			if (!db.objectStoreNames.contains(SOURCES_STORE)) {
 				const store = db.createObjectStore(SOURCES_STORE, {
 					keyPath: "id", // Define a unique key path for sources
@@ -298,17 +303,40 @@ const addRecord = async (record) => {
 		// Add genres, tags, and features to filters
 		const addToFilters = async (items, type) => {
 			for (const item of items) {
-				const request = filtersStore.get(item);
+				const index = filtersStore.index("name");
+				const request = index.get(item);
+				console.log("request", request);
 				const result = await new Promise((resolve, reject) => {
 					request.onsuccess = (event) => resolve(event.target.result);
 					request.onerror = (event) => reject(event.target.error);
 				});
+				console.log(result);
 				if (!result) {
 					await filtersStore.add({ name: item, type });
 				}
 			}
 		};
 
+		const logFilters = async () => {
+			const allFilters = await filtersStore.getAll();
+			allFilters.onsuccess = (event) => {
+				const filters = (event.target.result).sort((a, b) => a.name.localeCompare(b.name));
+				const combinedItems = [
+					...(record.genres || []),
+					...(record.tags || []),
+					...(record.features || []),
+				];
+				combinedItems.map((item) => item.name);
+				const uniqueItems = [...new Set(combinedItems)];
+				console.group("Filters");
+				console.log("allFilters", event.target.result);
+				console.log("allFilters", filters);
+				console.log("combinedItems", combinedItems);
+				console.log("uniqueItems", uniqueItems);
+				console.groupEnd();
+			}
+		}
+		logFilters();
 		if (record.genres) {
 			await addToFilters(record.genres, "genre");
 		}
@@ -676,7 +704,6 @@ async function getCollectionOrAll(name) {
 	const db = await openDB();
 	const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
 	const store = transaction.objectStore(COLLECTIONS_STORE);
-
 	return new Promise((resolve, reject) => {
 		let request;
 		if (name) {
@@ -685,21 +712,20 @@ async function getCollectionOrAll(name) {
 		} else {
 			request = store.getAll();
 		}
-
 		request.onsuccess = (event) => {
 			//console.group("Collection(s) retrieved:");
 			//	console.table(event.target.result);
 			//console.groupEnd();
 			resolve(event.target.result); // Resolve with the result (either a single collection or an array of collections)
 		};
-
 		request.onerror = (event) => {
 			console.error("Error retrieving collection(s):", event.target.error);
 			reject(event.target.error);
 		};
 	});
 }
-async function deleteCollection(collectionName) {
+
+export async function deleteCollection(collectionName) {
 	const db = await openDB();
 	const transaction = db.transaction([COLLECTIONS_STORE, SHELFS_STORE], "readwrite");
 	const collectionsStore = transaction.objectStore(COLLECTIONS_STORE);
@@ -737,6 +763,88 @@ async function deleteCollection(collectionName) {
 	};
 
 	await transaction.complete;
+}
+
+export async function toggleFavorites(recordName) {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction(
+			[RECORDS_STORE, COLLECTIONS_STORE],
+			"readwrite"
+		);
+		const recordStore = transaction.objectStore(RECORDS_STORE);
+		const collectionsStore = transaction.objectStore(COLLECTIONS_STORE);
+		const recordIndex = recordStore.index("name");
+		const record = await new Promise((resolve, reject) => {
+			const request = recordIndex.get(recordName);
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) => reject(event.target.error);
+		});
+		if (!record) {
+			console.error("Record not found:", recordName);
+			return;
+		}
+		const isFavorite = record.collections.includes("favorites");
+		if (isFavorite) {
+			record.collections = record.collections.filter(
+				(col) => col !== "favorites"
+			);
+			await new Promise((resolve, reject) => {
+				const updateRequest = recordStore.put(record);
+				updateRequest.onsuccess = () => resolve();
+				updateRequest.onerror = (event) => reject(event.target.error);
+			});
+			const collection = await new Promise((resolve, reject) => {
+				const request = collectionsStore.get("favorites");
+				request.onsuccess = (event) => resolve(event.target.result);
+				request.onerror = (event) => reject(event.target.error);
+			});
+			if (collection) {
+				collection.records = collection.records.filter(
+					(rec) => rec !== recordName
+				);
+				await new Promise((resolve, reject) => {
+					const updateRequest = collectionsStore.put(collection);
+					updateRequest.onsuccess = () => resolve();
+					updateRequest.onerror = (event) => reject(event.target.error);
+				});
+			}
+		} else {
+			record.collections.push("favorites");
+			await new Promise((resolve, reject) => {
+				const updateRequest = recordStore.put(record);
+				updateRequest.onsuccess = () => resolve();
+				updateRequest.onerror = (event) => reject(event.target.error);
+			});
+			const collection = await new Promise((resolve, reject) => {
+				const request = collectionsStore.get("favorites");
+				request.onsuccess = (event) => resolve(event.target.result);
+				request.onerror = (event) => reject(event.target.error);
+			});
+			if (!collection) {
+				await new Promise((resolve, reject) => {
+					const addRequest = collectionsStore.add({
+						name: "favorites",
+						inSidebar: true,
+						isDynamic: false,
+						records: [recordName],
+					});
+					addRequest.onsuccess = () => resolve();
+					addRequest.onerror = (event) => reject(event.target.error);
+				});
+			} else {
+				collection.records.push(recordName);
+				await new Promise((resolve, reject) => {
+					const updateRequest = collectionsStore.put(collection);
+					updateRequest.onsuccess = () => resolve();
+					updateRequest.onerror = (event) => reject(event.target.error);
+				});
+			}
+		}
+		await transaction.complete;
+	} catch (error) {
+		console.error("Error toggling favorite:", error);
+	}
 }
 
 export async function getCollectionsFromStore() {}
@@ -852,6 +960,5 @@ export {
 	deleteSource,
 	addOrUpdateCollection,
 	getCollectionOrAll,
-	deleteCollection,
 	getAllIndexedDBs,
 };

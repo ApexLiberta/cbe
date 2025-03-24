@@ -1740,10 +1740,6 @@ a {
 	z-index: 1000;
 }
 
-.entry-aside {
-	display: grid;
-}
-
 .banner {
 	width: 100%;
 	height: calc(720px/2.5);
@@ -1757,7 +1753,7 @@ a {
 	flex-direction: row;
 	justify-content: space-between;
 	align-items: center;
-	margin: 0 0 8px 0;
+	padding: 0 0 8px 0;
 	background-color: #16181c;
 
 	.status-button {
@@ -1793,7 +1789,7 @@ a {
 }
 
 .links-ol {
-	margin: 8px 0;
+	margin: 4px 0 8px 0;
 	padding: 8px;
 	background-color: #343434;
 	background-color: #292f3b;
@@ -1841,11 +1837,28 @@ a {
 
 	.entry-content {
 		flex: 90%;
+		font-size: 24px;
+		line-height: 2rem;
+
+		p{
+			margin-right: 24px;
+		}
+		img{
+			width: 100%;
+		}
 	}
 
 	.entry-aside {
 		flex: 40%;
-
+		h2 {
+			position: sticky;
+			top: 52px;
+			font-size: 28px;
+			text-transform: capitalize;
+			margin: 8px 0 14px 0;
+			background:
+				#16181c;
+		}
 		&>div {
 			margin: 12px 0;
 
@@ -1897,6 +1910,13 @@ a {
 
 footer {
 	display: none;
+
+	li{
+		&::after{
+			content: " | ";
+			margin: 0 4px;
+		}
+	}
 }
 
 .equal {
