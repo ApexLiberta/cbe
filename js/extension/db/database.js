@@ -1,16 +1,17 @@
 import {
 	sortObjectKeys,
 	findDifferences,
-} from "../extension/modules/helpers.js";
+} from "../modules/helpers.js";
 
-const RECORDS_STORE = "records";
-const COLLECTIONS_STORE = "collections";
-const SOURCES_STORE = "sources";
-const SHELFS_STORE = "shelfs";
-const FILTERS_STORE = "filters";
+const STORE_RECORDS = "records";
+const STORE_COLLECTIONS = "collections";
+const STORE_SOURCES = "sources";
+const STORE_SHELFS = "shelfs";
+const STORE_FILTERS = "filters";
 const GENRES_STORE = "genres";
 const TAGS_STORE = "tags";
 const FEATURES_STORE = "features";
+
 
 const NAME_INDEX = "name";
 const DESCRIPTION_INDEX = "description";
@@ -89,8 +90,8 @@ function openDB() {
 			console.log(db);
 
 			// Assuming you have a database object named `db` and a store name `gamesStore`
-			if (!db.objectStoreNames.contains(RECORDS_STORE)) {
-				const store = db.createObjectStore(RECORDS_STORE, {
+			if (!db.objectStoreNames.contains(STORE_RECORDS)) {
+				const store = db.createObjectStore(STORE_RECORDS, {
 					keyPath: "id",
 					autoIncrement: true,
 				});
@@ -133,18 +134,19 @@ function openDB() {
 
 			// Create sourcesStore with relevant keyPath
 
-			if (!db.objectStoreNames.contains(SOURCES_STORE)) {
-				const store = db.createObjectStore(SOURCES_STORE, {
-					keyPath: "id", // Define a unique key path for sources
-					autoIncrement: true, // Optional: automatically generate IDs
+			if (!db.objectStoreNames.contains(STORE_SOURCES)) {
+				const store = db.createObjectStore(STORE_SOURCES, {
+					keyPath: "id",
+					autoIncrement: true,
 				});
 				store.createIndex("name", "name", { unique: true });
 				store.createIndex("version", "version");
 				store.createIndex("matches", "matches");
 				store.createIndex("selectors", "selectors");
 			}
-			if (!db.objectStoreNames.contains(COLLECTIONS_STORE)) {
-				const store = db.createObjectStore(COLLECTIONS_STORE, {
+
+			if (!db.objectStoreNames.contains(STORE_COLLECTIONS)) {
+				const store = db.createObjectStore(STORE_COLLECTIONS, {
 					keyPath: "name",
 				});
 				store.createIndex("include_genres", "include_genres", {
@@ -159,12 +161,8 @@ function openDB() {
 				store.createIndex("exclude_features", "exclude_features", {
 					multiEntry: true,
 				});
-				store.createIndex("include_tags", "include_tags", {
-					multiEntry: true,
-				});
-				store.createIndex("exclude_tags", "exclude_tags", {
-					multiEntry: true,
-				});
+				store.createIndex("include_tags", "include_tags", { multiEntry: true });
+				store.createIndex("exclude_tags", "exclude_tags", { multiEntry: true });
 				store.createIndex("include_stores", "include_stores", {
 					multiEntry: true,
 				});
@@ -177,46 +175,46 @@ function openDB() {
 				store.createIndex("isPrivate", "isPrivate");
 				store.createIndex("beShelfed", "beShelfed");
 			}
-			if (!db.objectStoreNames.contains(SHELFS_STORE)) {
-				const store = db.createObjectStore(SHELFS_STORE, {
+			if (!db.objectStoreNames.contains(STORE_SHELFS)) {
+				const store = db.createObjectStore(STORE_SHELFS, {
 					keyPath: "id",
 					autoIncrement: true,
 				});
 				store.createIndex("name", "name", { unique: false });
-				store.createIndex("category", "category", { unique: false });
-				// categories -- collection, default
-				store.createIndex("type", "type", { unique: false });
-				// types -- collection, collections, timeline
+				store.createIndex("category", "category", { unique: false }); // categories -- collection, default
+				store.createIndex("type", "type", { unique: false }); // types -- collection, collections, timeline
 			}
-			if (!db.objectStoreNames.contains(FILTERS_STORE)) {
-				const store = db.createObjectStore(FILTERS_STORE, {
+			if (!db.objectStoreNames.contains(STORE_FILTERS)) {
+				const store = db.createObjectStore(STORE_FILTERS, {
 					keyPath: "id",
 					autoIncrement: true,
 				});
 				store.createIndex("name", "name", { unique: false });
 				store.createIndex("type", "type", { unique: false });
 			}
-			// Create genres object store
-			//if (!db.objectStoreNames.contains(GENRES_STORE)) {
-			//	const genresStore = db.createObjectStore(GENRES_STORE, {
-			//		keyPath: "value",
-			//	}); // Key is the genre value
-			//	genresStore.createIndex("value", "value", { unique: true }); // Ensure unique genres
-			//}
+			if(false){
+				// Create genres object store
+				if (!db.objectStoreNames.contains(GENRES_STORE)) {
+					const genresStore = db.createObjectStore(GENRES_STORE, {
+						keyPath: "value",
+					}); // Key is the genre value
+					genresStore.createIndex("value", "value", { unique: true }); // Ensure unique genres
+				}
 
-			//// Create tags object store
-			//if (!db.objectStoreNames.contains(TAGS_STORE)) {
-			//	const tagsStore = db.createObjectStore(TAGS_STORE, { keyPath: "value" }); // Key is the tag value
-			//	tagsStore.createIndex("value", "value", { unique: true }); // Ensure unique tags
-			//}
+				// Create tags object store
+				if (!db.objectStoreNames.contains(TAGS_STORE)) {
+					const tagsStore = db.createObjectStore(TAGS_STORE, { keyPath: "value" }); // Key is the tag value
+					tagsStore.createIndex("value", "value", { unique: true }); // Ensure unique tags
+				}
 
-			//// Create features object store
-			//if (!db.objectStoreNames.contains(FEATURES_STORE)) {
-			//	const featuresStore = db.createObjectStore(FEATURES_STORE, {
-			//		keyPath: "value",
-			//	}); // Key is the feature value
-			//	featuresStore.createIndex("value", "value", { unique: true }); // Ensure unique features
-			//}
+				// Create features object store
+				if (!db.objectStoreNames.contains(FEATURES_STORE)) {
+					const featuresStore = db.createObjectStore(FEATURES_STORE, {
+						keyPath: "value",
+					}); // Key is the feature value
+					featuresStore.createIndex("value", "value", { unique: true }); // Ensure unique features
+				}
+			}
 		};
 
 		request.onsuccess = (event) => {
@@ -241,9 +239,9 @@ const addRecord = async (record) => {
 	console.log("sorted", record);
 	try {
 		const db = await openDB();
-		const tx = db.transaction([RECORDS_STORE, FILTERS_STORE], "readwrite");
-		const recordsStore = tx.objectStore(RECORDS_STORE);
-		const filtersStore = tx.objectStore(FILTERS_STORE);
+		const tx = db.transaction([STORE_RECORDS, STORE_FILTERS], "readwrite");
+		const recordsStore = tx.objectStore(STORE_RECORDS);
+		const filtersStore = tx.objectStore(STORE_FILTERS);
 
 		getCollectionOrAll().then((collections) => {
 			const dynamicCollections = collections.filter(
@@ -356,8 +354,8 @@ const addRecord = async (record) => {
 const getRecord = async (name) => {
 	try {
 		const db = await openDB();
-		const tx = db.transaction(RECORDS_STORE, "readonly");
-		const store = tx.objectStore(RECORDS_STORE);
+		const tx = db.transaction(STORE_RECORDS, "readonly");
+		const store = tx.objectStore(STORE_RECORDS);
 		const index = store.index("name"); // Assuming the index exists
 
 		const request = index.get(name);
@@ -371,11 +369,12 @@ const getRecord = async (name) => {
 		console.error("Error getting record by name:", error);
 	}
 };
+
 const getAllRecords = async () => {
 	try {
 		const db = await openDB();
-		const tx = db.transaction(RECORDS_STORE, "readonly");
-		const store = tx.objectStore(RECORDS_STORE);
+		const tx = db.transaction(STORE_RECORDS, "readonly");
+		const store = tx.objectStore(STORE_RECORDS);
 		const request = store.getAll();
 		const result = new Promise((resolve, reject) => {
 			request.onsuccess = (event) => resolve(event.target.result);
@@ -387,26 +386,7 @@ const getAllRecords = async () => {
 	}
 };
 
-const getTotalRecords = async () => {
-	try {
-		const db = await openDB();
-		const tx = db.transaction(RECORDS_STORE, "readonly");
-		const store = tx.objectStore(RECORDS_STORE);
-
-		const request = store.getAll();
-		return new Promise((resolve, reject) => {
-			request.onsuccess = (event) => {
-				resolve(event.target.result.length);
-			};
-			request.onerror = (event) => {
-				reject(event.target.error);
-			};
-		});
-	} catch (error) {
-		console.error("Error getting total games:", error);
-	}
-};
-// Implement other database operations like getGames, updateGame, deleteGame, etc.
+ // Implement other database operations like getGames, updateGame, deleteGame, etc.
 function exportIndexedDB() {
 	const dbName = "myDatabase"; // Replace with your database name
 	const storeName = "myStore"; // Replace with your object store name
@@ -453,12 +433,12 @@ function exportIndexedDB() {
 	};
 }
 
-// Sources
+ // Sources
 async function addOrUpdateSource(sourceData) {
 	try {
 		const db = await openDB();
-		const transaction = db.transaction([SOURCES_STORE], "readwrite");
-		const store = transaction.objectStore(SOURCES_STORE);
+		const transaction = db.transaction([STORE_SOURCES], "readwrite");
+		const store = transaction.objectStore(STORE_SOURCES);
 
 		// Check if a source with the same name and matches already exists
 		const nameIndex = store.index("name");
@@ -525,8 +505,8 @@ async function addOrUpdateSource(sourceData) {
 async function deleteSource(name) {
 	try {
 		const db = await openDB();
-		const transaction = db.transaction([SOURCES_STORE], "readwrite");
-		const store = transaction.objectStore(SOURCES_STORE);
+		const transaction = db.transaction([STORE_SOURCES], "readwrite");
+		const store = transaction.objectStore(STORE_SOURCES);
 		const request = store.delete(name);
 
 		return new Promise((resolve, reject) => {
@@ -544,8 +524,8 @@ async function getSourceById(id) {}
 async function getAllSources() {
 	try {
 		const db = await openDB();
-		const transaction = db.transaction([SOURCES_STORE], "readonly");
-		const store = transaction.objectStore(SOURCES_STORE);
+		const transaction = db.transaction([STORE_SOURCES], "readonly");
+		const store = transaction.objectStore(STORE_SOURCES);
 		const request = store.getAll();
 
 		return new Promise((resolve, reject) => {
@@ -558,11 +538,41 @@ async function getAllSources() {
 		throw error;
 	}
 }
+export async function toggleSource(sourceName) {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([STORE_SOURCES], "readwrite");
+		const store = transaction.objectStore(STORE_SOURCES);
+		const index = store.index("name");
+		const source = await new Promise((resolve, reject) => {
+			const request = index.get(sourceName);
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) => reject(event.target.error);
+		});
+
+		if (!source) {
+			console.error("Source not found:", sourceName);
+			return;
+		}
+
+		source.enabled = !source.enabled; // Toggle the 'enabled' property
+		await new Promise((resolve, reject) => {
+			const updateRequest = store.put(source);
+			updateRequest.onsuccess = () => resolve();
+			updateRequest.onerror = (event) => reject(event.target.error);
+		});
+
+		console.log(`Source '${sourceName}' toggled to ${source.enabled ? "enabled" : "disabled"}`);
+	} catch (error) {
+		console.error("Error toggling source:", error);
+	}
+}
+
 export async function addShelf(shelfData) {
 	try {
 		const db = await openDB();
-		const transaction = db.transaction([SHELFS_STORE], "readwrite");
-		const store = transaction.objectStore(SHELFS_STORE);
+		const transaction = db.transaction([STORE_SHELFS], "readwrite");
+		const store = transaction.objectStore(STORE_SHELFS);
 
 		const addRequest = store.add(shelfData);
 		return new Promise((resolve, reject) => {
@@ -586,8 +596,8 @@ export async function addShelf(shelfData) {
 export async function getShelfs() {
 	try {
 		const db = await openDB();
-		const transaction = db.transaction([SHELFS_STORE], "readonly");
-		const store = transaction.objectStore(SHELFS_STORE);
+		const transaction = db.transaction([STORE_SHELFS], "readonly");
+		const store = transaction.objectStore(STORE_SHELFS);
 		const request = store.getAll();
 
 		return new Promise((resolve, reject) => {
@@ -603,8 +613,8 @@ export async function getShelfs() {
 export async function deleteShelf(shelfId) {
 	try {
 		const db = await openDB();
-		const transaction = db.transaction([SHELFS_STORE], "readwrite");
-		const store = transaction.objectStore(SHELFS_STORE);
+		const transaction = db.transaction([STORE_SHELFS], "readwrite");
+		const store = transaction.objectStore(STORE_SHELFS);
 		const request = store.delete(shelfId);
 
 		return new Promise((resolve, reject) => {
@@ -619,91 +629,126 @@ export async function deleteShelf(shelfId) {
 }
 //collection
 async function addOrUpdateCollection(name, data) {
-	return new Promise(async (resolve, reject) => {
-		// Wrap the entire function in a Promise
-		const db = await openDB();
-		const tx = db.transaction(COLLECTIONS_STORE, "readwrite");
-		const store = tx.objectStore(COLLECTIONS_STORE);
+    return new Promise(async (resolve, reject) => {
+        const db = await openDB();
+        const tx = db.transaction(
+					[STORE_COLLECTIONS, STORE_RECORDS],
+					"readwrite"
+				);
+        const store = tx.objectStore(STORE_COLLECTIONS);
 
-		try {
-			const getItemRequest = store.get(name); // Get the IDBRequest directly
+        try {
+            const getItemRequest = store.get(name);
+            getItemRequest.onsuccess = async (event) => {
+                let operation = "";
+				const collection = event.target.result
+                if (collection) {
+                    operation = "updated";
+					console.groupCollapsed(operation, "Tables | collection - data")
+						console.table(collection)
+						console.log(data)
+					console.groupEnd()
+					const recordStore = tx.objectStore(STORE_RECORDS);
+					const filteredRecords = [];
+					for (const key of Object.keys(data)) {
+						const filter = Array.isArray(data[key]) ? data[key] : [data[key]];
+						//console.clear();
+						const index = recordStore.index(key === "sources"? "source" : key);
+						const filterPromises = filter.map(filterValue => {
+							return new Promise((resolve, reject) => {
+								const request = index.getAll(IDBKeyRange.only(filterValue));
+								request.onsuccess = (rangeEvent) => {
+									const records = rangeEvent.target.result;
+									const recordsNames = records.map(record => record.name);
+									filteredRecords.push(...recordsNames);
+									console.log(filterValue, "filteredRecords", filteredRecords);
+									if (collection.filters) {
+										collection.filters[key].push(filterValue);
+									} else {
+										collection.filters = {};
+										collection.filters[key] = [filterValue];
+									}
+									resolve();
+								};
+								request.onerror = (rangeEvent) => {
+									console.error("Error retrieving filters:", rangeEvent.target.error);
+									reject(rangeEvent.target.error);
+								};
+							});
+						});
 
-			getItemRequest.onsuccess = (event) => {
-				// Attach handlers to the request
-				let operation = "";
-				let resultData = null;
-				if (event.target.result) {
-					operation = "updated";
-					const updatedData = {
-						...event.target.result,
-						...data,
-						records: [
-							...(event.target.result.records || []),
-							...(data.records || []),
-						],
-					};
-					const putRequest = store.put(updatedData); // Use putRequest for promise handling
+						Promise.all(filterPromises).then(() => {
+							const uniqueFilteredRecords = Array.from(
+								new Set(filteredRecords.map((a) => a.id))
+							).map((id) => {
+								return filteredRecords.find((a) => a.id === id);
+							});
+							collection.records = uniqueFilteredRecords;
+							collection.records = filteredRecords;
+							console.log(collection, uniqueFilteredRecords, filteredRecords);
+							console.log("collection.records", collection.records);
+							const putRequest = store.put(collection);
+							putRequest.onsuccess = () => {
+								db.close();
+								resolve({
+									operation: operation,
+									operationStatus: true,
+									collection: collection,
+								});
+							};
+							putRequest.onerror = (event) => {
+								db.close();
+								operation = "error_updating";
+								reject(event.target.error);
+							};
+						}).catch(error => {
+							console.error("Error processing filters:", error);
+							db.close();
+							reject(error);
+						});
+					}
+                } else {
+                    operation = "created";
+                    const newData = { name, ...data };
+                    const addRequest = store.add(newData);
+                    addRequest.onsuccess = (addEvent) => {
+                        operation = "created";
+                        resolve({
+                            operation: operation,
+                            operationStatus: true,
+                            collection: newData,
+                        });
+                    };
+                    addRequest.onerror = (addEvent) => {
+                        operation = "error_creating";
+                        reject(addEvent.target.error);
+                    };
+                }
+            };
+            getItemRequest.onerror = (event) => {
+                db.close();
+                reject(event.target.error);
+            };
 
-					putRequest.onsuccess = (putEvent) => {
-						console.group("existingItem - Updated");
-						console.table(updatedData);
-						console.log("putEvent:", putEvent);
-						console.log("Updated item:", updatedData);
-						console.log("stored collection", event.target.result);
-						console.log("new collection data", data);
-						console.groupEnd();
-						resultData = updatedData; // Data after update
-					};
-					putRequest.onerror = (putEvent) => {
-						operation = "error_updating";
-						reject(putEvent.target.error); // Reject promise on error
-					};
-				} else {
-					operation = "created";
-					const newData = { name, ...data };
-					const addRequest = store.add(newData); // Use addRequest for promise handling
-					addRequest.onsuccess = (addEvent) => {
-						operation = "created";
-						resultData = newData; // Data after creation
-					};
-					addRequest.onerror = (addEvent) => {
-						operation = "error_creating";
-						reject(addEvent.target.error); // Reject promise on error
-					};
-				}
-
-				tx.oncomplete = () => {
-					// Wait for transaction to complete successfully
-					db.close();
-					resolve({
-						// Resolve the promise with operation details
-						opperation: operation,
-						opperationStatus: true,
-						collection: resultData, // Return the data (could be before or after operation depending on timing, adjust if needed more specific return data)
-					});
-				};
-				tx.onerror = (event) => {
-					db.close();
-					reject(event.target.error); // Reject promise if transaction fails
-				};
-			};
-
-			getItemRequest.onerror = (event) => {
-				db.close();
-				reject(event.target.error); // Reject promise if initial get fails
-			};
-		} catch (error) {
-			db.close();
-			console.error("Error in addOrUpdateCollection:", error);
-			reject(error); // Reject promise if any other error occurs
-		}
-	});
+            tx.oncomplete = () => {
+                console.log("Transaction completed successfully.");
+            };
+            tx.onerror = (event) => {
+                db.close();
+                reject(event.target.error);
+            };
+        } catch (error) {
+            db.close();
+            console.error("Error in addOrUpdateCollection:", error);
+            reject(error);
+        }
+    });
 }
 
-async function getCollectionOrAll(name) {
+export async function getCollectionOrAll(name) {
 	const db = await openDB();
-	const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
-	const store = transaction.objectStore(COLLECTIONS_STORE);
+	const transaction = db.transaction(STORE_COLLECTIONS, "readonly");
+	const store = transaction.objectStore(STORE_COLLECTIONS);
 	return new Promise((resolve, reject) => {
 		let request;
 		if (name) {
@@ -727,9 +772,9 @@ async function getCollectionOrAll(name) {
 
 export async function deleteCollection(collectionName) {
 	const db = await openDB();
-	const transaction = db.transaction([COLLECTIONS_STORE, SHELFS_STORE], "readwrite");
-	const collectionsStore = transaction.objectStore(COLLECTIONS_STORE);
-	const shelfsStore = transaction.objectStore(SHELFS_STORE);
+	const transaction = db.transaction([STORE_COLLECTIONS, STORE_SHELFS], "readwrite");
+	const collectionsStore = transaction.objectStore(STORE_COLLECTIONS);
+	const shelfsStore = transaction.objectStore(STORE_SHELFS);
 
 	// Delete the collection
 	const deleteRequest = collectionsStore.delete(collectionName);
@@ -769,11 +814,11 @@ export async function toggleFavorites(recordName) {
 	try {
 		const db = await openDB();
 		const transaction = db.transaction(
-			[RECORDS_STORE, COLLECTIONS_STORE],
+			[STORE_RECORDS, STORE_COLLECTIONS],
 			"readwrite"
 		);
-		const recordStore = transaction.objectStore(RECORDS_STORE);
-		const collectionsStore = transaction.objectStore(COLLECTIONS_STORE);
+		const recordStore = transaction.objectStore(STORE_RECORDS);
+		const collectionsStore = transaction.objectStore(STORE_COLLECTIONS);
 		const recordIndex = recordStore.index("name");
 		const record = await new Promise((resolve, reject) => {
 			const request = recordIndex.get(recordName);
@@ -871,10 +916,10 @@ export async function getFromStore(storeName, key = null) {
 		throw error;
 	}
 }
-// const source = await getFromStore(SOURCES_STORE, sourceId);
-// const allSources = await getFromStore(SOURCES_STORE);
-// const collection = await getFromStore(COLLECTIONS_STORE, collectionName);
-// const allCollections = await getFromStore(COLLECTIONS_STORE);
+// const source = await getFromStore(STORE_SOURCES, sourceId);
+// const allSources = await getFromStore(STORE_SOURCES);
+// const collection = await getFromStore(STORE_COLLECTIONS, collectionName);
+// const allCollections = await getFromStore(STORE_COLLECTIONS);
 
 //Timeline
 export async function getRecordsTimeline() {
@@ -959,6 +1004,5 @@ export {
 	getAllSources,
 	deleteSource,
 	addOrUpdateCollection,
-	getCollectionOrAll,
 	getAllIndexedDBs,
 };

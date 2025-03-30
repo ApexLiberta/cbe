@@ -8,6 +8,8 @@ import {
 } from "./components/dialog.js";
 import { createSettingElement } from "./components/settings.js";
 import {
+	getAppHeaderHtml,
+	getAppFooterHtml,
 	asideTemplate,
 	shelfTemplate,
 	getWhatsNew,
@@ -22,7 +24,8 @@ import {
 	fetchRecord,
 	fetchRecords,
 	fetchFilters,
-} from "./extension/fetch.js";
+} from "./extension/helpers/fetch.js";
+import { createToggleElement } from "./../js/extension/modules/helpers.js"
 
 // REVIEW Constants for page names
 const PAGE_HOME = "home";
@@ -81,6 +84,10 @@ console.log("browser", browser)
 const isBrowser = isBrowserEnvironment();
 
 function extensionPageManger() {}
+
+document.querySelector("body").prepend(getAppHeaderHtml())
+const appFooter = getAppFooterHtml();
+document.querySelector("body").append(appFooter);
 
 const heroHeader = document.querySelector("header");
 const heroNav = heroHeader.querySelector(".hero-nav");
@@ -317,7 +324,7 @@ async function libraryMgr(page, data) {
 					<div class="menu-item" data-content="exploration-info">filters</div>
 				`;
 				asideTag.classList.add("sidebar");
-				let asideTagBtns = asideTag
+				asideTag
 					.querySelectorAll(".menu-item")
 					.forEach((btn) => {
 						btn.addEventListener("click", () => {
@@ -326,8 +333,279 @@ async function libraryMgr(page, data) {
 							});
 							btn.classList.add("active");
 							contentSection.innerHTML = `
-							<h2 class="content-title">${btn.textContent}</h2>
-						`;
+								<h2 class="content-title">${btn.textContent}</h2>
+							`;
+							if (btn.textContent === "sources") {
+								const addSourceButton = document.createElement("button");
+								addSourceButton.textContent = "Add Source";
+								addSourceButton.classList.add(
+									"add-source-btn",
+									"settings-add-btn"
+								);
+
+								addSourceButton.addEventListener("click", () => {
+									const dialogManagerVar = dialogManager(
+										confirmationDialog({
+											header: "Add New Source",
+											headerDesc: "Enter the details for the new source.",
+										})
+									);
+									dialogManagerVar.classList.add("add-source-dialog");
+
+									const dialogVar = dialogManagerVar.querySelector(".dialog");
+									const form = document.createElement("form");
+									form.id = "add-source-form";
+
+									const nameInput = document.createElement("input");
+									nameInput.type = "text";
+									nameInput.placeholder = "Source Name";
+									nameInput.name = "source-name";
+									nameInput.required = true;
+
+									const urlInput = document.createElement("input");
+									urlInput.type = "url";
+									urlInput.placeholder = "Source URL";
+									urlInput.name = "source-url";
+									urlInput.required = true;
+
+									const submitButton = document.createElement("button");
+									submitButton.type = "submit";
+									submitButton.textContent = "Add";
+
+									const cancelButton = document.createElement("button");
+									cancelButton.type = "button";
+									cancelButton.textContent = "Cancel";
+
+									form.append(nameInput, urlInput, submitButton, cancelButton);
+									dialogVar.appendChild(form);
+
+									cancelButton.addEventListener("click", () => {
+										dialogManagerVar.remove();
+									});
+
+									form.addEventListener("submit", (event) => {
+										event.preventDefault();
+										const sourceName = nameInput.value;
+										const sourceUrl = urlInput.value;
+
+										browser.runtime.sendMessage(
+											{
+												action: "addSource",
+												data: { name: sourceName, url: sourceUrl },
+											},
+											(response) => {
+												if (response.error) {
+													console.error("Error adding source:", response.error);
+												} else {
+													console.log("Source added successfully:", response);
+													dialogManagerVar.remove();
+												}
+											}
+										);
+									});
+								});
+
+								contentSection.appendChild(addSourceButton);
+
+								(async () => {
+									try {
+										const sources = await browser.runtime.sendMessage({ action: "getSources" });
+										if (sources && sources.length > 0) {
+											console.log("Sources retrieved successfully:", sources);
+											const sourcesList = document.createElement("ul");
+											sources.forEach((source) => {
+												const sourceItem = document.createElement("li");
+
+												// Header with name and toggle button
+												const listHeader = document.createElement("div");
+												listHeader.classList.add("list-header");
+												listHeader.textContent = source.name;
+
+												const toggleButton = document.createElement("button");
+												toggleButton.textContent = "Toggle";
+												toggleButton.classList.add("toggle-btn");
+												const toggleElement = createToggleElement(source.name, source.name, "settings");
+												listHeader.appendChild(toggleElement);
+
+												const toggleInput = toggleElement.querySelector("input");
+												toggleInput.addEventListener("change", (event) => {
+													console.log(`Toggle for ${source.name} changed to:`, event.target.checked);
+													// Add your logic here for handling the toggle change
+												});
+
+												// Content with matches and selectors
+												const listContent = document.createElement("div");
+												listContent.classList.add("list-content");
+
+												// Add matches
+												if (source.matches) {
+													const matchesDiv = document.createElement("div");
+													matchesDiv.classList.add("matches");
+													matchesDiv.textContent = `Matches: ${source.matches}`;
+													listContent.appendChild(matchesDiv);
+												}
+
+												// Add selectors
+												if (source.selectors) {
+													const selectorsDiv = document.createElement("div");
+													selectorsDiv.classList.add("selectors");
+													selectorsDiv.textContent = "Selectors:";
+													Object.keys(source.selectors).forEach((key) => {
+														const selectorSpan = document.createElement("span");
+														selectorSpan.textContent = key;
+														selectorsDiv.appendChild(selectorSpan);
+													});
+													listContent.appendChild(selectorsDiv);
+												}
+
+												// Append header and content to the list item
+												sourceItem.append(listHeader, listContent);
+												sourcesList.appendChild(sourceItem);
+
+												// Add click event to the toggle button
+												toggleButton.addEventListener("click", () => {
+													const toggleSource = async (sourceName, isEnabled) => {
+														try {
+															const response = await browser.runtime.sendMessage({
+																action: "toggleSource",
+																data: { name: sourceName, enabled: isEnabled },
+															});
+															if (response.error) {
+																console.error(`Error toggling source ${sourceName}:`, response.error);
+															} else {
+																console.log(`Source ${sourceName} toggled successfully:`, response);
+															}
+														} catch (error) {
+															console.error(`Error toggling source ${sourceName}:`, error);
+														}
+													};
+
+													toggleSource(source.name, !toggleInput.checked);
+													listContent.classList.toggle("hidden");
+												});
+											});
+											contentSection.appendChild(sourcesList);
+										} else {
+											console.warn("No sources found.");
+										}
+									} catch (error) {
+										console.error("Error retrieving sources:", error);
+									}
+								})();
+							} else if (btn.textContent === "filters") {
+								const filterButton = document.createElement("button");
+								filterButton.textContent = "Add Filter";
+								filterButton.classList.add("add-filter-btn", "settings-add-btn");
+								filterButton.addEventListener("click", () => {
+									const dialogManagerVar = dialogManager(
+										confirmationDialog({
+											header: "Add New Filter",
+											headerDesc: "Enter the details for the new filter.",
+										})
+									);
+									dialogManagerVar.classList.add("add-filter-dialog");
+
+									const dialogVar = dialogManagerVar.querySelector(".dialog");
+									const form = document.createElement("form");
+									form.id = "add-filter-form";
+
+									const nameInput = document.createElement("input");
+									nameInput.type = "text";
+									nameInput.placeholder = "Filter Name";
+									nameInput.name = "filter-name";
+									nameInput.required = true;
+
+									const typeInput = document.createElement("input");
+									typeInput.type = "text";
+									typeInput.placeholder = "Filter Type";
+									typeInput.name = "filter-type";
+									typeInput.required = true;
+
+									const submitButton = document.createElement("button");
+									submitButton.type = "submit";
+									submitButton.textContent = "Add";
+
+									const cancelButton = document.createElement("button");
+									cancelButton.type = "button";
+									cancelButton.textContent = "Cancel";
+
+									form.append(nameInput, typeInput, submitButton, cancelButton);
+									dialogVar.appendChild(form);
+
+									cancelButton.addEventListener("click", () => {
+										dialogManagerVar.remove();
+									});
+
+									form.addEventListener("submit", (event) => {
+										event.preventDefault();
+										const filterName = nameInput.value;
+										const filterType = typeInput.value;
+
+										browser.runtime.sendMessage(
+											{
+												action: "addFilter",
+												data: { name: filterName, type: filterType },
+											},
+											(response) => {
+												if (response.error) {
+													console.error("Error adding filter:", response.error);
+												} else {
+													console.log("Filter added successfully:", response);
+													dialogManagerVar.remove();
+												}
+											}
+										);
+									});
+								});
+								contentSection.appendChild(filterButton);
+								(async () => {
+									try {
+										const filters = await fetchFilters();
+										if (filters && filters.length > 0) {
+											console.log("Filters retrieved successfully:", filters);
+											// Group filters by type
+											const groupedFilters = filters.reduce((acc, filter) => {
+												if (!acc[filter.type]) {
+													acc[filter.type] = [];
+												}
+												acc[filter.type].push(filter.name);
+												return acc;
+											}, {});
+											// Create a list for each type
+											Object.entries(groupedFilters).forEach(([type, names]) => {
+												const filterGroupDiv = document.createElement("div");
+												filterGroupDiv.classList.add("filter-group"); // Add filter-group class
+
+												const typeHeader = document.createElement("h3");
+												typeHeader.textContent = type;
+												filterGroupDiv.appendChild(typeHeader);
+
+												const filtersList = document.createElement("ul");
+												filtersList.classList.add("filter-list"); // Add filter-list class
+												names.forEach((name) => {
+													const filterItem = document.createElement("li");
+													filterItem.textContent = name;
+													filtersList.appendChild(filterItem);
+												});
+												const addButton = document.createElement("button");
+												addButton.classList.add("add-btn");
+												addButton.innerHTML = `
+													<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+														<path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+													</svg>
+												`;
+												filterGroupDiv.append(filtersList, addButton);
+
+												contentSection.appendChild(filterGroupDiv);
+											});
+										} else {
+											console.warn("No filters found.");
+										}
+									} catch (error) {
+										console.error("Error retrieving filters:", error);
+									}
+								})();
+							}
 						});
 					});
 				contentSection.classList.add("content-area");
@@ -701,7 +979,7 @@ async function loadCollection(collection) {
 		const genres = filters.filter((filter) => filter.type === "genre");
 		const tags = filters.filter((filter) => filter.type === "tag");
 		const features = filters.filter((filter) => filter.type === "feature");
-		const sources = await browser.runtime.sendMessage({ action: "getSources" });;
+		const sources = await browser.runtime.sendMessage({ action: "getSources" });
 
 		console.group("loadCollection");
 		console.log("retrieved filters:", filters);
@@ -885,31 +1163,23 @@ async function loadCollection(collection) {
 					optionDiv.classList.add("hidden");
 					// Implement filtering logic based on selected option
 					console.log(`${filterObj.name} selected:`, option);
-					// Add selected item to collection
-					if (!collection.filters) {
-						collection.filters = {};
-					}
-					collection.filters[filterObj.name] = option;
-					browser.runtime.sendMessage(
-						{
-							action: "addOrUpdateCollection",
-							name: collection.name,
-							data: collection
+					const messageObject = {
+						action: "addOrUpdateCollection",
+						name: collection.name,
+						data: {
+							[filterObj.name]: option
 						},
-						(response) => {
-							if (response.error) {
-								console.error(
-									"Error updating collection filters:",
-									response.error
-								);
-							} else {
-								console.log(
-									"Collection filters updated successfully:",
-									response
-								);
-							}
+					};
+					browser.runtime.sendMessage(messageObject, (response) => {
+						if (response.error) {
+							console.error(
+								"Error updating collection filters:",
+								response.error
+							);
+						} else {
+							console.log("Collection filters updated successfully:", response);
 						}
-					);
+					});
 				});
 			});
 
@@ -1044,15 +1314,15 @@ async function loadCollection(collection) {
 		libraryContent.prepend(pageHeader, settingCont, itemsDiv);
 
 		// Initial setup of dropdown values based on collection data if available
-		if (collection.filters) {
-			Object.keys(collection.filters).forEach(filterName => {
-				const value = collection.filters[filterName];
-				const dropdownBtn = settingCont.querySelector(`.btn-ctx-dropdown label:contains("${filterName}") + .btn-cont .dropdown-btn .txt`);
-				if (dropdownBtn) {
-					dropdownBtn.textContent = value;
-				}
-			});
-		}
+		//if (collection.filters) {
+		//	Object.keys(collection.filters).forEach(filterName => {
+		//		const value = collection.filters[filterName];
+		//		const dropdownBtn = settingCont.querySelector(`.btn-ctx-dropdown label:contains("${filterName}") + .btn-cont .dropdown-btn .txt`);
+		//		if (dropdownBtn) {
+		//			dropdownBtn.textContent = value;
+		//		}
+		//	});
+		//}
 
 		console.log("Loaded collection:", collection);
 	} catch (error) {

@@ -3,21 +3,37 @@ import {
 	addOrUpdateCollection, getCollectionOrAll, deleteCollection,
 	addOrUpdateSource, getAllSources,
 	getAllIndexedDBs, indexedDBPromise
-} from "../db/database.js";
+} from "./db/database.js";
 import {
 	addShelf,
 	getShelfs,
 	deleteShelf,
 	getRecordsTimeline,
-} from "../db/database.js";
-import { getFromStore } from "../db/database.js";
-import { toggleFavorites } from "../db/database.js";
+} from "./db/database.js";
+import { getFromStore } from "./db/database.js";
+import { toggleFavorites } from "./db/database.js";
+import { toggleSource } from "./db/database.js";
 import { doesUrlMatchPattern, sortObjectKeys } from "./modules/helpers.js";
 
 (function () {
 	managePageAction();
 })();
+function getBrowserInfo() {
+	const userAgent = navigator.userAgent;
+	if (userAgent.includes("Firefox")) {
+		return "Firefox";
+	} else if (userAgent.includes("Edg")) {
+		return "Edge";
+	} else if (userAgent.includes("Chrome")) {
+		return "Chrome";
+	} else if (userAgent.includes("Safari")) {
+		return "Safari";
+	} else {
+		return "Unknown";
+	}
+}
 
+console.log("Browser detected:", getBrowserInfo());
 async function loadSettingsJson() {
 	const response = await fetch("/js/json/settings.json");
 	return await response.json();
@@ -258,6 +274,40 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				})
 				.catch((error) => {
 					console.error("Error adding favorite:", error);
+					sendResponse({ success: false, error: error.message });
+				});
+			return true;
+		case "toggleSource":
+			browser.storage.local
+				.get("sources")
+				.then((data) => {
+					const sources = data.sources || [];
+					const sourceIndex = sources.findIndex(
+						(source) => source.name === request.name
+					);
+					if (sourceIndex !== -1) {
+						sources[sourceIndex].enabled = !sources[sourceIndex].enabled;
+						browser.storage.local
+							.set({ sources })
+							.then(() => {
+								console.log(
+									`Source "${request.name}" toggled to ${
+										sources[sourceIndex].enabled ? "enabled" : "disabled"
+									}.`
+								);
+								sendResponse({ success: true, source: sources[sourceIndex] });
+							})
+							.catch((error) => {
+								console.error("Error updating source:", error);
+								sendResponse({ success: false, error: error.message });
+							});
+					} else {
+						console.error("Source not found:", request.name);
+						sendResponse({ success: false, error: "Source not found" });
+					}
+				})
+				.catch((error) => {
+					console.error("Error retrieving sources:", error);
 					sendResponse({ success: false, error: error.message });
 				});
 			return true;

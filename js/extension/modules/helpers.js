@@ -175,6 +175,36 @@ function parseDate(dateString) {
 	return csharpFormat;
 }
 
+export function createToggleElement(setting, settingKey, sectionKey) {
+	const toggleContainer = document.createElement("div");
+	toggleContainer.classList.add("toggle-container");
+
+	const input = document.createElement("input");
+	input.type = "checkbox";
+	input.id = `${sectionKey}-${settingKey}`; // Unique ID for label association
+	input.checked = setting.default === true; // Set default value if provided
+
+	const label = document.createElement("label");
+	label.classList.add("toggle-switch");
+	label.setAttribute("for", `${sectionKey}-${settingKey}`); // Associate label with input
+
+	toggleContainer.appendChild(input);
+	toggleContainer.appendChild(label);
+	if (sectionKey !== "settings") {
+		input.addEventListener("change", (event) => {
+			// Handle toggle change event, save setting value, etc.
+			console.log(
+				`Toggle ${sectionKey}.${settingKey} changed to: ${event.target.checked}`
+			);
+			// You would typically store the setting value here
+			updateSettingValue(sectionKey, settingKey, event.target.checked);
+		});
+	}
+
+	return toggleContainer;
+}
+
+
 export {
 	sortObjectKeys,
 	findDifferences,

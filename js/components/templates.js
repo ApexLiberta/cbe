@@ -1,5 +1,114 @@
 import { hideAllDropdowns } from "./../index.js";
 
+export function getAppHeaderHtml() {
+	const header = document.createElement("header");
+	header.id = "appHeader";
+
+	const nav = document.createElement("nav");
+	nav.classList.add("hero-nav", "nav-container");
+
+	const label1 = document.createElement("label");
+	label1.setAttribute("for", "toggleLibrary");
+	label1.innerHTML = "<h2>connect</h2>";
+
+	const toggleDiv = document.createElement("div");
+	toggleDiv.classList.add("toggle-stylized");
+
+	const input = document.createElement("input");
+	input.type = "checkbox";
+	input.id = "toggleLibrary";
+
+	const label2 = document.createElement("label");
+	label2.setAttribute("for", "toggleLibrary");
+	label2.innerHTML = '<h2 class="active">library</h2>';
+
+	toggleDiv.appendChild(input);
+	nav.append(label1, toggleDiv, label2);
+
+	const syncBtnCont = document.createElement("div");
+	syncBtnCont.classList.add("sync-btn-cont");
+
+	const settingsTrigger = document.createElement("span");
+	settingsTrigger.id = "settings-trigger";
+	settingsTrigger.textContent = "Settings";
+
+	syncBtnCont.appendChild(settingsTrigger);
+	header.append(nav, syncBtnCont);
+
+	return header;
+}
+
+export function getAppFooterHtml() {
+	const footer = document.createElement("footer");
+
+	const firstRow = document.createElement("div");
+	firstRow.classList.add("flex-row");
+
+	const firstList = document.createElement("ol");
+	const firstListItems = [
+		{ text: "About", href: "./pages/about.html" },
+		{ text: "Contact" },
+		{ text: "Backers" },
+		{ text: "Roadmap" },
+		{ text: "Terms" },
+		{ text: "Privacy" },
+	];
+	firstListItems.forEach((item) => {
+		const li = document.createElement("li");
+		if (item.href) {
+			const a = document.createElement("a");
+			a.href = item.href;
+			a.textContent = item.text;
+			li.appendChild(a);
+		} else {
+			li.textContent = item.text;
+		}
+		firstList.appendChild(li);
+	});
+
+	const secondList = document.createElement("ol");
+	const secondListItems = [
+		{ text: "Discord", href: "https://discord.gg/CXMCKMMS2N", target: "_blank" },
+		{ text: "Patreon", href: "https://www.patreon.com/apexliberta", target: "_blank" },
+		{ text: "Twitter", href: "https://x.com/LDragnald" },
+		{ text: "Threads", href: "", style: "display: none;" },
+	];
+	secondListItems.forEach((item) => {
+		const li = document.createElement("li");
+		const a = document.createElement("a");
+		a.href = item.href;
+		a.textContent = item.text;
+		if (item.target) a.target = item.target;
+		if (item.style) a.style = item.style;
+		li.appendChild(a);
+		secondList.appendChild(li);
+	});
+
+	firstRow.append(firstList, secondList);
+
+	const secondRow = document.createElement("div");
+	secondRow.classList.add("flex-row");
+
+	const spanContainer = document.createElement("div");
+	const spans = [
+		{ text: "© 2021 Connect" },
+		{ text: "V1.13.2", title: "version" },
+		{ text: "powered by IGDB" },
+	];
+	spans.forEach((item) => {
+		const span = document.createElement("span");
+		span.textContent = item.text;
+		if (item.title) span.title = item.title;
+		spanContainer.appendChild(span);
+	});
+
+	secondRow.appendChild(spanContainer);
+
+	footer.append(firstRow, secondRow);
+
+	return footer;
+}
+
 export const configPropertyHtml = (type) => {
 	const wrapper = document.createElement("div");
 
