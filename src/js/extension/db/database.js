@@ -8,10 +8,12 @@ const STORE_COLLECTIONS = "collections";
 const STORE_SOURCES = "sources";
 const STORE_SHELFS = "shelfs";
 const STORE_FILTERS = "filters";
+
 const GENRES_STORE = "genres";
 const TAGS_STORE = "tags";
 const FEATURES_STORE = "features";
 
+const STORE_LABELS = "labels";
 
 const NAME_INDEX = "name";
 const DESCRIPTION_INDEX = "description";
@@ -174,6 +176,8 @@ function openDB() {
 				store.createIndex("inSidebar", "inSidebar");
 				store.createIndex("isPrivate", "isPrivate");
 				store.createIndex("beShelfed", "beShelfed");
+				store.createIndex("isExpanded", "isExpanded");
+				store.createIndex("isPinned", "isPinned");
 			}
 			if (!db.objectStoreNames.contains(STORE_SHELFS)) {
 				const store = db.createObjectStore(STORE_SHELFS, {
@@ -234,23 +238,31 @@ function openDB() {
 }
 
 // Adding a Game
-const addRecord = async (record) => {
+
+export async function addRecord(record){
+
 	record = sortObjectKeys(record);
+	if (record.source) {
+		record.sources = Array.isArray(record.source) ? record.source : [record.source];
+		delete record.source;
+	}
 	console.log("sorted", record);
 	try {
 		const db = await openDB();
-		const tx = db.transaction([STORE_RECORDS, STORE_FILTERS], "readwrite");
+		const tx = db.transaction(
+			[STORE_COLLECTIONS, STORE_RECORDS, STORE_FILTERS],
+			"readwrite"
+		);
 		const recordsStore = tx.objectStore(STORE_RECORDS);
 		const filtersStore = tx.objectStore(STORE_FILTERS);
+		const collectionStore = tx.objectStore(STORE_COLLECTIONS);
 
-		getCollectionOrAll().then((collections) => {
-			const dynamicCollections = collections.filter(
-				(collection) => collection.isDynamic
-			);
-			console.log(collections, dynamicCollections);
+		const collectionsRequest = collectionStore.getAll();
+		const collections = await new Promise((resolve, reject) => {
+			collectionsRequest.onsuccess = (event) => resolve(event.target.result);
+			collectionsRequest.onerror = (event) => reject(event.target.error);
 		});
 
-		console.log(filtersStore);
 		const index = recordsStore.index("name");
 		const request = index.getAll(record.name);
 		const result = await new Promise((resolve, reject) => {
@@ -297,6 +309,44 @@ const addRecord = async (record) => {
 				console.error("Error updating record:", error);
 			}
 		}
+
+
+		const dynamicCollections = collections.filter(
+			(collection) => collection.isDynamic
+		);
+		console.log("dynamicCollections", dynamicCollections);
+		for (const collection of dynamicCollections) {
+			console.log("collection", collection);
+			const filters = collection.filters || {};
+			console.log("filters", filters);
+			let matches = true;
+
+			for (const [key, values] of Object.entries(filters)) {
+				console.log("key", key, "values", values);
+				if (Array.isArray(values) && values.length > 0) {
+					console.log("values", values);
+					const recordValues = Array.isArray(record[key])
+						? record[key]
+						: [record[key]];
+					const hasMatch = recordValues.some((value) => values.includes(value));
+					console.log("hasMatch", hasMatch, key, values, recordValues);
+					if (!hasMatch) {
+						matches = false;
+						break;
+					}
+				}
+			}
+
+			if (matches) {
+				if (!record.collections) {
+					record.collections = [];
+				}
+				if (!record.collections.includes(collection.name)) {
+					record.collections.push(collection.name);
+				}
+			}
+		}
+		console.log(filtersStore);
 
 		// Add genres, tags, and features to filters
 		const addToFilters = async (items, type) => {
@@ -626,6 +676,7 @@ export async function deleteShelf(shelfId) {
 		throw error;
 	}
 }
+
 //collection
 async function addOrUpdateCollection(name, data) {
     return new Promise(async (resolve, reject) => {
@@ -658,6 +709,21 @@ async function addOrUpdateCollection(name, data) {
 								const request = index.getAll(IDBKeyRange.only(filterValue));
 								request.onsuccess = (rangeEvent) => {
 									const records = rangeEvent.target.result;
+									records.forEach((record) => {
+										if (record.collections) {
+											console.log(record.collections)
+											const index = record.collections.indexOf("uncategorized");
+											console.log(index)
+											if (index !== -1) {
+												record.collections.splice(index, 1);
+											}
+											if (!record.collections.includes(name)) {
+												record.collections.push(name);
+											}
+										} else {
+											record.collections = [name];
+										}
+									});
 									const recordsNames = records.map(record => record.name);
 									filteredRecords.push(...recordsNames);
 									console.log(filterValue, "filteredRecords", filteredRecords);
@@ -807,6 +873,84 @@ export async function deleteCollection(collectionName) {
 	};
 
 	await transaction.complete;
+}
+
+
+export async function toggleAsideExpandInSidebar(collectionName) {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([STORE_COLLECTIONS], "readwrite");
+		const store = transaction.objectStore(STORE_COLLECTIONS);
+
+		const collection = await new Promise((resolve, reject) => {
+			const request = store.get(collectionName);
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) => reject(event.target.error);
+		});
+
+		if (!collection) {
+			console.error("Collection not found:", collectionName);
+			return;
+		}
+
+		collection.isExpanded = !collection.isExpanded;
+
+		await new Promise((resolve, reject) => {
+			const updateRequest = store.put(collection);
+			updateRequest.onsuccess = () => {
+				console.log(
+					`Collection '${collectionName}' toggled to ${
+						collection.isExpanded ? "expanded" : "collapsed"
+					} in sidebar`
+				);
+				resolve();
+			};
+			updateRequest.onerror = (event) => reject(event.target.error);
+		});
+
+		await transaction.complete;
+	} catch (error) {
+		console.error("Error toggling aside expand in sidebar:", error);
+	}
+}
+export async function toggleAsidePinnedInSidebar(collectionName) {
+	try {
+		const db = await openDB();
+		const transaction = db.transaction([STORE_COLLECTIONS], "readwrite");
+		const store = transaction.objectStore(STORE_COLLECTIONS);
+
+		const collection = await new Promise((resolve, reject) => {
+			const request = store.get(collectionName);
+			request.onsuccess = (event) => resolve(event.target.result);
+			request.onerror = (event) => reject(event.target.error);
+		});
+
+		if (!collection) {
+			console.error("Collection not found:", collectionName);
+			return false;
+		}
+
+		collection.isPinned = !collection.isPinned;
+
+		await new Promise((resolve, reject) => {
+			const updateRequest = store.put(collection);
+			updateRequest.onsuccess = () => {
+				console.log(
+					collection.isPinned, `Collection '${collectionName}' toggled to ${
+						collection.isPinned ? "pinned" : "unpinned"
+					} in sidebar`
+				);
+				resolve();
+			};
+			updateRequest.onerror = (event) => reject(event.target.error);
+		});
+
+		await transaction.complete;
+		return true;
+	} catch (error) {
+		console.error("Error toggling aside pinned in sidebar:", error);
+		return false;
+	}
 }
 
 export async function toggleFavorites(recordName) {
@@ -994,7 +1138,6 @@ function getStartOfWeek(date) {
 
 export {
 	openDB,
-	addRecord,
 	getRecord,
 	getAllRecords,
 	exportIndexedDB,

@@ -8,6 +8,8 @@ import {
 	addShelf,
 	getShelfs,
 	deleteShelf,
+	toggleAsideExpandInSidebar,
+	toggleAsidePinnedInSidebar,
 	getRecordsTimeline,
 } from "./db/database.js";
 import { getFromStore } from "./db/database.js";
@@ -40,7 +42,7 @@ async function loadSettingsJson() {
 }
 
 //REVIEW - Delete
-browser.tabs.create({ url: "/index.html" });
+//browser.tabs.create({ url: "/index.html" });
 
 browser.runtime.onInstalled.addListener(() => {
 	browser.storage.local
@@ -164,9 +166,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 									.set({ sources })
 									.then(() => {
 										console.log("Code appended to sources array.");
-										let extensionPageUrl = browser.runtime.getURL(
-											"moz-extension://f127ce6d-079c-4ce8-b770-d382fed89a24/index.html"
-										);
+										let extensionPageUrl = browser.runtime.getURL("index.html");
 										browser.runtime.reload();
 										if (extensionPageUrl) {
 											browser.tabs.create({ url: extensionPageUrl });
@@ -245,6 +245,22 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 					sendResponse({ success: false, error: error.message });
 				});
 			return true;
+		case "toggleCollectionExpand":
+
+			console.log(
+				"called",
+				request.collection,
+				toggleAsideExpandInSidebar(request.collection)
+			);
+			return true
+		case "toggleCollectionPinned":
+
+			console.log(
+				"called",
+				request.collection,
+				toggleAsidePinnedInSidebar(request.collection)
+			);
+			return true
 		case "fetchTimeLine":
 			getRecordsTimeline()
 				.then((timeline) => {

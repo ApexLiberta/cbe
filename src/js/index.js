@@ -103,6 +103,11 @@ toggleLibrary.addEventListener("click", () => {
 		? (heroNav.dataset.active = PAGE_HOME)
 		: (heroNav.dataset.active = PAGE_LIBRARY);
 });
+const rmCont = document.createElement("a")
+rmCont.classList.add("road-map-link")
+rmCont.textContent = "Road Map"
+rmCont.href = "./../pages/roadmap.html"
+console.log(rmCont)
 
 /*
 const getSettingsJson = browser.runtime.sendMessage({ action: "getSettings" })
@@ -136,7 +141,7 @@ getSettingsJson().then((response) => {
 });
 
 const getCollections = browser.runtime.sendMessage({
-	action: "getCollectionOrAll",
+	action: ACTION_GET_ALL_COLLECTIONS,
 });
 getCollections.then((response) => {
 	console.log(response);
@@ -173,67 +178,95 @@ function loadAsideCollections() {
 			libraryMgr(btn.dataset.page);
 		});
 	});
-	browser.runtime.sendMessage({ action: "getCollectionOrAll" }, (response) => {
-		if (response.error) {
-			console.error("Error:", response.error);
-		} else {
-			console.warn(
-				response.collections.length != 0
-					? ("Received collections:", response.collections)
-					: "There are no collections in the database"
-			);
-			aside.querySelector(".collections-cont").innerHTML = ``;
-			response.collections.forEach((collection) => {
-				//if (collection.inSidebar) {
-				if (collection.inSidebar && collection.records) {
-					const collectionElement = document.createElement("div");
-					collectionElement.className = "collection";
+	browser.runtime.sendMessage(
+		{ action: ACTION_GET_ALL_COLLECTIONS },
+		(response) => {
+			if (response.error) {
+				console.error("Error:", response.error);
+			} else {
+				console.warn(
+					response.collections.length != 0
+						? ("Received collections:", response.collections)
+						: "There are no collections in the database"
+				);
+				aside.querySelector(".collections-cont").innerHTML = ``;
+				response.collections.forEach((collection) => {
+					//if (collection.inSidebar) {
+					if (collection.inSidebar && collection.records) {
+						const collectionElement = document.createElement("div");
+						collectionElement.className = "collection";
 
-					const groupHeader = document.createElement("div");
-					groupHeader.classList.add("group-header");
+						const groupHeader = document.createElement("div");
+						groupHeader.classList.add("group-header");
 
-					const groupExpandToggle = document.createElement("button");
-					groupExpandToggle.classList.add("expand-toggle");
-					groupExpandToggle.addEventListener("click", (event) => {
-						event.target.classList.toggle("expanded");
-					});
+						const groupExpandToggle = document.createElement("button");
+						groupExpandToggle.classList.add("expand-toggle");
 
-					const loadGroupBtn = document.createElement("button");
-					loadGroupBtn.classList.add("load-group-btn");
-					loadGroupBtn.dataset.page = collection.name;
-					loadGroupBtn.innerHTML = `
-					<span class=""txt>${collection.name || "Untitled Collection"}</span>
-					`;
-					if (collection.games || collection.games !== undefined) {
-						const gamesLength = document.createElement("span");
-						gamesLength.classList.add("text");
-						gamesLength.textContent = `(${collection.games.length})`;
+						const loadGroupBtn = document.createElement("button");
+						loadGroupBtn.classList.add("load-group-btn");
+						loadGroupBtn.dataset.page = collection.name;
+						loadGroupBtn.innerHTML = `
+						<span class=""txt>${collection.name || "Untitled Collection"}</span>
+						`;
+						console.log(collection)
+						if (collection.isExpanded){
+							groupExpandToggle.classList.toggle("expanded");
+						}
+						groupExpandToggle.addEventListener("click", (event) => {
+							event.target.classList.toggle("expanded");
+							browser.runtime.sendMessage(
+								{
+									action: "toggleCollectionExpand",
+									collection: collection.name,
+								},
+								(response) => {
+									console.log(response);
+								}
+							);
+						});
+						if (collection.games || collection.games !== undefined) {
+							const gamesLength = document.createElement("span");
+							gamesLength.classList.add("text");
+							gamesLength.textContent = `(${collection.games.length})`;
+						}
+						if (collection.isDynamic) {
+							const iconSpan = document.createElement("span");
+							iconSpan.classList.add("icon");
+							const iconElement = document.createElement("i");
+							iconElement.classList.add("fa-solid", "fa-bolt");
+							iconSpan.appendChild(iconElement);
+							loadGroupBtn.appendChild(iconSpan);
+						}
+						loadGroupBtn.addEventListener("click", (event) => {
+							libraryMgr("collection", collection);
+						});
+
+						const groupPin = document.createElement("button");
+						groupPin.classList.add("group-pin");
+						if (collection.isPinned) {
+							groupPin.classList.add("pinned");
+						}
+						groupPin.innerHTML = `<i class="fa-solid fa-thumbtack"></i>`;
+
+						groupPin.addEventListener("click", () => {
+							browser.runtime.sendMessage({
+								action: "toggleCollectionPinned",
+								collection: collection.name
+							}, (response) => {
+								console.log(response)
+							});
+						})
+
+						groupHeader.append(groupExpandToggle, loadGroupBtn, groupPin);
+						collectionElement.appendChild(groupHeader);
+						aside
+							.querySelector(".collections-cont")
+							.appendChild(collectionElement);
 					}
-					if (collection.isDynamic) {
-						const iconSpan = document.createElement("span");
-						iconSpan.classList.add("icon");
-						const iconElement = document.createElement("i");
-						iconElement.classList.add("fa-solid", "fa-bolt");
-						iconSpan.appendChild(iconElement);
-						loadGroupBtn.appendChild(iconSpan);
-					}
-					loadGroupBtn.addEventListener("click", (event) => {
-						libraryMgr("collection", collection);
-					});
-
-					const groupPin = document.createElement("button");
-					groupPin.classList.add("group-pin");
-					groupPin.innerHTML = `<i class="fa-solid fa-thumbtack"></i>`;
-
-					groupHeader.append(groupExpandToggle, loadGroupBtn, groupPin);
-					collectionElement.appendChild(groupHeader);
-					aside
-						.querySelector(".collections-cont")
-						.appendChild(collectionElement);
-				}
-			});
+				});
+			}
 		}
-	});
+	);
 	return aside;
 }
 
@@ -335,289 +368,307 @@ async function libraryMgr(page, data) {
 							contentSection.innerHTML = `
 								<h2 class="content-title">${btn.textContent}</h2>
 							`;
-							if (btn.textContent === "sources") {
-								const addSourceButton = document.createElement("button");
-								addSourceButton.textContent = "Add Source";
-								addSourceButton.classList.add(
-									"add-source-btn",
-									"settings-add-btn"
-								);
-
-								addSourceButton.addEventListener("click", () => {
-									const dialogManagerVar = dialogManager(
-										confirmationDialog({
-											header: "Add New Source",
-											headerDesc: "Enter the details for the new source.",
-										})
+							switch (btn.textContent) {
+								case "sources":
+									const addSourceButton = document.createElement("button");
+									addSourceButton.textContent = "Add Source";
+									addSourceButton.classList.add(
+										"add-source-btn",
+										"settings-add-btn"
 									);
-									dialogManagerVar.classList.add("add-source-dialog");
 
-									const dialogVar = dialogManagerVar.querySelector(".dialog");
-									const form = document.createElement("form");
-									form.id = "add-source-form";
+									addSourceButton.addEventListener("click", () => {
+										// Create a container div for the dialog
+										addSourceButton.disabled = true;
+										const dialogContainer = document.createElement("div");
+										dialogContainer.classList.add("add-source-dialog");
 
-									const nameInput = document.createElement("input");
-									nameInput.type = "text";
-									nameInput.placeholder = "Source Name";
-									nameInput.name = "source-name";
-									nameInput.required = true;
+										const dialogVar = document.createElement("div");
+										dialogVar.classList.add("dialog");
+										dialogContainer.appendChild(dialogVar);
 
-									const urlInput = document.createElement("input");
-									urlInput.type = "url";
-									urlInput.placeholder = "Source URL";
-									urlInput.name = "source-url";
-									urlInput.required = true;
+										const form = document.createElement("form");
+										form.id = "add-source-form";
 
-									const submitButton = document.createElement("button");
-									submitButton.type = "submit";
-									submitButton.textContent = "Add";
+										// Single input for Source Gist ID
+										const gistIdInput = document.createElement("input");
+										gistIdInput.type = "text";
+										gistIdInput.placeholder = "Source Gist ID";
+										gistIdInput.name = "source-gist-id";
+										gistIdInput.required = true;
 
-									const cancelButton = document.createElement("button");
-									cancelButton.type = "button";
-									cancelButton.textContent = "Cancel";
+										const submitButton = document.createElement("button");
+										submitButton.type = "submit";
+										submitButton.textContent = "Add";
 
-									form.append(nameInput, urlInput, submitButton, cancelButton);
-									dialogVar.appendChild(form);
+										const cancelButton = document.createElement("button");
+										cancelButton.type = "button";
+										cancelButton.textContent = "Cancel";
 
-									cancelButton.addEventListener("click", () => {
-										dialogManagerVar.remove();
-									});
+										form.append(gistIdInput, submitButton, cancelButton);
+										dialogVar.appendChild(form);
 
-									form.addEventListener("submit", (event) => {
-										event.preventDefault();
-										const sourceName = nameInput.value;
-										const sourceUrl = urlInput.value;
+										// Append the dialog container below the button
+										addSourceButton.parentNode.insertBefore(dialogContainer, addSourceButton.nextSibling);
 
-										browser.runtime.sendMessage(
-											{
-												action: "addSource",
-												data: { name: sourceName, url: sourceUrl },
-											},
-											(response) => {
-												if (response.error) {
-													console.error("Error adding source:", response.error);
-												} else {
-													console.log("Source added successfully:", response);
-													dialogManagerVar.remove();
+										cancelButton.addEventListener("click", () => {
+											addSourceButton.disabled = false;
+											dialogContainer.remove();
+										});
+
+										form.addEventListener("submit", (event) => {
+											addSourceButton.disabled = false;
+											event.preventDefault();
+											const gistId = gistIdInput.value;
+											console.log(gistId)
+
+											browser.runtime.sendMessage({ action: "addSource", gistId },
+												(response) => {
+													if (response.error) {
+														console.error("Error adding source:", response.error);
+													} else {
+														console.log("Source added successfully:", response);
+														dialogContainer.remove();
+													}
 												}
-											}
-										);
+											);
+										});
 									});
-								});
 
-								contentSection.appendChild(addSourceButton);
+									contentSection.appendChild(addSourceButton);
 
-								(async () => {
-									try {
-										const sources = await browser.runtime.sendMessage({ action: "getSources" });
-										if (sources && sources.length > 0) {
-											console.log("Sources retrieved successfully:", sources);
-											const sourcesList = document.createElement("ul");
-											sources.forEach((source) => {
-												const sourceItem = document.createElement("li");
+									(async () => {
+										try {
+											const sources = await browser.runtime.sendMessage({
+												action: "getSources",
+											});
+											if (sources && sources.length > 0) {
+												console.log("Sources retrieved successfully:", sources);
+												const sourcesList = document.createElement("ul");
+												sources.forEach((source) => {
+													const sourceItem = document.createElement("li");
 
-												// Header with name and toggle button
-												const listHeader = document.createElement("div");
-												listHeader.classList.add("list-header");
-												listHeader.textContent = source.name;
+													// Header with name and toggle button
+													const listHeader = document.createElement("div");
+													listHeader.classList.add("list-header");
+													listHeader.textContent = source.name;
 
-												const toggleButton = document.createElement("button");
-												toggleButton.textContent = "Toggle";
-												toggleButton.classList.add("toggle-btn");
-												const toggleElement = createToggleElement(source.name, source.name, "settings");
-												listHeader.appendChild(toggleElement);
+													const toggleButton = document.createElement("button");
+													toggleButton.textContent = "Toggle";
+													toggleButton.classList.add("toggle-btn");
+													const toggleElement = createToggleElement(
+														source.name,
+														source.name,
+														"settings"
+													);
+													listHeader.appendChild(toggleElement);
 
-												const toggleInput = toggleElement.querySelector("input");
-												toggleInput.checked = source.enabled;
-												toggleInput.addEventListener("change", (event) => {
-													const toggleSource = async (
-														sourceName,
-														isEnabled
-													) => {
-														try {
-															const response =
-																await browser.runtime.sendMessage({
-																	action: "toggleSource",
-																	name: sourceName,
-																	enabled: isEnabled
-																});
-															if (response.error) {
+													const toggleInput =
+														toggleElement.querySelector("input");
+													toggleInput.checked = source.enabled;
+													toggleInput.addEventListener("change", (event) => {
+														const toggleSource = async (
+															sourceName,
+															isEnabled
+														) => {
+															try {
+																const response =
+																	await browser.runtime.sendMessage({
+																		action: "toggleSource",
+																		name: sourceName,
+																		enabled: isEnabled,
+																	});
+																if (response.error) {
+																	console.error(
+																		`Error toggling source ${sourceName}:`,
+																		response.error
+																	);
+																} else {
+																	console.log(
+																		`Source ${sourceName} toggled successfully:`,
+																		response
+																	);
+																}
+															} catch (error) {
 																console.error(
 																	`Error toggling source ${sourceName}:`,
-																	response.error
-																);
-															} else {
-																console.log(
-																	`Source ${sourceName} toggled successfully:`,
-																	response
+																	error
 																);
 															}
-														} catch (error) {
-															console.error(
-																`Error toggling source ${sourceName}:`,
-																error
-															);
-														}
-													};
-													toggleSource(source.name, !toggleInput.checked);
-													console.log(`Toggle for ${source.name} changed to:`, event.target.checked);
-												});
-
-												// Content with matches and selectors
-												const listContent = document.createElement("div");
-												listContent.classList.add("list-content");
-
-												// Add matches
-												if (source.matches) {
-													const matchesDiv = document.createElement("div");
-													matchesDiv.classList.add("matches");
-													matchesDiv.textContent = `Matches: ${source.matches}`;
-													listContent.appendChild(matchesDiv);
-												}
-
-												// Add selectors
-												if (source.selectors) {
-													const selectorsDiv = document.createElement("div");
-													selectorsDiv.classList.add("selectors");
-													selectorsDiv.textContent = "Selectors:";
-													Object.keys(source.selectors).forEach((key) => {
-														const selectorSpan = document.createElement("span");
-														selectorSpan.textContent = key;
-														selectorsDiv.appendChild(selectorSpan);
+														};
+														toggleSource(source.name, !toggleInput.checked);
+														console.log(
+															`Toggle for ${source.name} changed to:`,
+															event.target.checked
+														);
 													});
-													listContent.appendChild(selectorsDiv);
-												}
 
-												// Append header and content to the list item
-												sourceItem.append(listHeader, listContent);
-												sourcesList.appendChild(sourceItem);
+													// Content with matches and selectors
+													const listContent = document.createElement("div");
+													listContent.classList.add("list-content");
 
-												// Add click event to the toggle button
-												toggleButton.addEventListener("click", () => {
-													listContent.classList.toggle("hidden");
+													// Add matches
+													if (source.matches) {
+														const matchesDiv = document.createElement("div");
+														matchesDiv.classList.add("matches");
+														matchesDiv.textContent = `Matches: ${source.matches}`;
+														listContent.appendChild(matchesDiv);
+													}
+
+													// Add selectors
+													if (source.selectors) {
+														const selectorsDiv = document.createElement("div");
+														selectorsDiv.classList.add("selectors");
+														selectorsDiv.textContent = "Selectors:";
+														Object.keys(source.selectors).forEach((key) => {
+															const selectorSpan =
+																document.createElement("span");
+															selectorSpan.textContent = key;
+															selectorsDiv.appendChild(selectorSpan);
+														});
+														listContent.appendChild(selectorsDiv);
+													}
+
+													// Append header and content to the list item
+													sourceItem.append(listHeader, listContent);
+													sourcesList.appendChild(sourceItem);
+
+													// Add click event to the toggle button
+													toggleButton.addEventListener("click", () => {
+														listContent.classList.toggle("hidden");
+													});
 												});
-											});
-											contentSection.appendChild(sourcesList);
-										} else {
-											console.warn("No sources found.");
-										}
-									} catch (error) {
-										console.error("Error retrieving sources:", error);
-									}
-								})();
-							} else if (btn.textContent === "filters") {
-								const filterButton = document.createElement("button");
-								filterButton.textContent = "Add Filter";
-								filterButton.classList.add("add-filter-btn", "settings-add-btn");
-								filterButton.addEventListener("click", () => {
-									const dialogManagerVar = dialogManager(
-										confirmationDialog({
-											header: "Add New Filter",
-											headerDesc: "Enter the details for the new filter.",
-										})
-									);
-									dialogManagerVar.classList.add("add-filter-dialog");
-
-									const dialogVar = dialogManagerVar.querySelector(".dialog");
-									const form = document.createElement("form");
-									form.id = "add-filter-form";
-
-									const nameInput = document.createElement("input");
-									nameInput.type = "text";
-									nameInput.placeholder = "Filter Name";
-									nameInput.name = "filter-name";
-									nameInput.required = true;
-
-									const typeInput = document.createElement("input");
-									typeInput.type = "text";
-									typeInput.placeholder = "Filter Type";
-									typeInput.name = "filter-type";
-									typeInput.required = true;
-
-									const submitButton = document.createElement("button");
-									submitButton.type = "submit";
-									submitButton.textContent = "Add";
-
-									const cancelButton = document.createElement("button");
-									cancelButton.type = "button";
-									cancelButton.textContent = "Cancel";
-
-									form.append(nameInput, typeInput, submitButton, cancelButton);
-									dialogVar.appendChild(form);
-
-									cancelButton.addEventListener("click", () => {
-										dialogManagerVar.remove();
-									});
-
-									form.addEventListener("submit", (event) => {
-										event.preventDefault();
-										const filterName = nameInput.value;
-										const filterType = typeInput.value;
-
-										browser.runtime.sendMessage(
-											{
-												action: "addFilter",
-												data: { name: filterName, type: filterType },
-											},
-											(response) => {
-												if (response.error) {
-													console.error("Error adding filter:", response.error);
-												} else {
-													console.log("Filter added successfully:", response);
-													dialogManagerVar.remove();
-												}
+												contentSection.appendChild(sourcesList);
+											} else {
+												console.warn("No sources found.");
 											}
-										);
-									});
-								});
-								contentSection.appendChild(filterButton);
-								(async () => {
-									try {
-										const filters = await fetchFilters();
-										if (filters && filters.length > 0) {
-											console.log("Filters retrieved successfully:", filters);
-											// Group filters by type
-											const groupedFilters = filters.reduce((acc, filter) => {
-												if (!acc[filter.type]) {
-													acc[filter.type] = [];
-												}
-												acc[filter.type].push(filter.name);
-												return acc;
-											}, {});
-											// Create a list for each type
-											Object.entries(groupedFilters).forEach(([type, names]) => {
-												const filterGroupDiv = document.createElement("div");
-												filterGroupDiv.classList.add("filter-group"); // Add filter-group class
-
-												const typeHeader = document.createElement("h3");
-												typeHeader.textContent = type;
-												filterGroupDiv.appendChild(typeHeader);
-
-												const filtersList = document.createElement("ul");
-												filtersList.classList.add("filter-list"); // Add filter-list class
-												names.forEach((name) => {
-													const filterItem = document.createElement("li");
-													filterItem.textContent = name;
-													filtersList.appendChild(filterItem);
-												});
-												const addButton = document.createElement("button");
-												addButton.classList.add("add-btn");
-												addButton.innerHTML = `
-													<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-														<path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-													</svg>
-												`;
-												filterGroupDiv.append(filtersList, addButton);
-
-												contentSection.appendChild(filterGroupDiv);
-											});
-										} else {
-											console.warn("No filters found.");
+										} catch (error) {
+											console.error("Error retrieving sources:", error);
 										}
-									} catch (error) {
-										console.error("Error retrieving filters:", error);
-									}
-								})();
+									})();
+									break;
+								case "filters":
+									const filterButton = document.createElement("button");
+									filterButton.textContent = "Add Filter";
+									filterButton.classList.add("add-filter-btn", "settings-add-btn");
+									filterButton.addEventListener("click", () => {
+										const dialogManagerVar = dialogManager(
+											confirmationDialog({
+												header: "Add New Filter",
+												headerDesc: "Enter the details for the new filter.",
+											})
+										);
+										dialogManagerVar.classList.add("add-filter-dialog");
+
+										const dialogVar = dialogManagerVar.querySelector(".dialog");
+										const form = document.createElement("form");
+										form.id = "add-filter-form";
+
+										const nameInput = document.createElement("input");
+										nameInput.type = "text";
+										nameInput.placeholder = "Filter Name";
+										nameInput.name = "filter-name";
+										nameInput.required = true;
+
+										const typeInput = document.createElement("input");
+										typeInput.type = "text";
+										typeInput.placeholder = "Filter Type";
+										typeInput.name = "filter-type";
+										typeInput.required = true;
+
+										const submitButton = document.createElement("button");
+										submitButton.type = "submit";
+										submitButton.textContent = "Add";
+
+										const cancelButton = document.createElement("button");
+										cancelButton.type = "button";
+										cancelButton.textContent = "Cancel";
+
+										form.append(nameInput, typeInput, submitButton, cancelButton);
+										dialogVar.appendChild(form);
+
+										cancelButton.addEventListener("click", () => {
+											dialogManagerVar.remove();
+										});
+
+										form.addEventListener("submit", (event) => {
+											event.preventDefault();
+											const filterName = nameInput.value;
+											const filterType = typeInput.value;
+
+											browser.runtime.sendMessage(
+												{
+													action: "addFilter",
+													data: { name: filterName, type: filterType },
+												},
+												(response) => {
+													if (response.error) {
+														console.error("Error adding filter:", response.error);
+													} else {
+														console.log("Filter added successfully:", response);
+														dialogManagerVar.remove();
+													}
+												}
+											);
+										});
+									});
+									contentSection.appendChild(filterButton);
+									const filterArr = [
+										"genre",
+										"feature",
+										"tag",
+									]
+									(async () => {
+										try {
+											const filters = await fetchFilters();
+											if (filters && filters.length > 0) {
+												console.log("Filters retrieved successfully:", filters);
+												// Group filters by type
+												const groupedFilters = filters.reduce((acc, filter) => {
+													if (!acc[filter.type]) {
+														acc[filter.type] = [];
+													}
+													acc[filter.type].push(filter.name);
+													return acc;
+												}, {});
+												// Create a list for each type
+												Object.entries(groupedFilters).forEach(([type, names]) => {
+													const filterGroupDiv = document.createElement("div");
+													filterGroupDiv.classList.add("filter-group"); // Add filter-group class
+
+													const typeHeader = document.createElement("h3");
+													typeHeader.textContent = type;
+													filterGroupDiv.appendChild(typeHeader);
+
+													const filtersList = document.createElement("ul");
+													filtersList.classList.add("filter-list"); // Add filter-list class
+													names.forEach((name) => {
+														const filterItem = document.createElement("li");
+														filterItem.textContent = name;
+														filtersList.appendChild(filterItem);
+													});
+													const addButton = document.createElement("button");
+													addButton.classList.add("add-btn");
+													addButton.innerHTML = `
+														<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+															<path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+														</svg>
+													`;
+													filterGroupDiv.append(filtersList, addButton);
+
+													contentSection.appendChild(filterGroupDiv);
+												});
+											} else {
+												console.warn("No filters found.");
+											}
+										} catch (error) {
+											console.error("Error retrieving filters:", error);
+										}
+									})();
+									break
+								default:
+									console.log("loading default")
+									break;
 							}
 						});
 					});
@@ -678,7 +729,7 @@ async function libraryMgr(page, data) {
 
 						browser.runtime.sendMessage(
 							{
-								action: "addOrUpdateCollection",
+								action: ACTION_ADD_OR_UPDATE_COLLECTION,
 								name: document
 									.getElementById("collection-title")
 									.value.toLowerCase(),
@@ -1177,10 +1228,10 @@ async function loadCollection(collection) {
 					// Implement filtering logic based on selected option
 					console.log(`${filterObj.name} selected:`, option);
 					const messageObject = {
-						action: "addOrUpdateCollection",
+						action: ACTION_ADD_OR_UPDATE_COLLECTION,
 						name: collection.name,
 						data: {
-							[filterObj.name]: option
+							[filterObj.name]: option,
 						},
 					};
 					browser.runtime.sendMessage(messageObject, (response) => {

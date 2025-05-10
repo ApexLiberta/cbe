@@ -32,7 +32,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 								// Ensure gameInfo is valid before sending a message
 								if (data) {
 									data["source"] = source.name;
-									console.log(data)
+									console.log(data);
 									browser.runtime.sendMessage({ action: "addRecord", data });
 								} else {
 									console.warn("Failed to retrieve game information.");
@@ -156,3 +156,39 @@ function processElements(key, selector, selectorType) {
 		? results
 		: results[0];
 }
+
+console.clear()
+function extractGameDataFromInnerText(htmlString) {
+	const text = htmlString.innerText;
+	const lines = text.split("\n");
+	const gameData = {};
+
+
+	lines.forEach((line) => {
+		const parts = line.split(":");
+		if (parts.length >= 2) {
+			const label =
+				parts[0].trim().charAt(0).toUpperCase() +
+				parts[0].trim().slice(1).toLowerCase();
+			const value = parts.slice(1).join(":").trim();
+			console.log(label, value);
+			if (
+				label.toLowerCase() === "genre" ||
+				label.toLowerCase() === "developer" ||
+				label.toLowerCase() === "publisher"
+			) {
+				gameData[label] = value.split(",").map((g) => g.trim());
+			} else {
+				gameData[label] = value;
+			}
+		}
+	});
+
+	return gameData;
+}
+
+// Example Usage:
+const htmlSnippet = document.querySelector("#genresAndManufacturer");
+
+const gameDataObject = extractGameDataFromInnerText(htmlSnippet);
+console.log(gameDataObject);
